@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/bnbchain/gnark-setup-cli/phase1"
 	"github.com/urfave/cli/v2"
 )
 
@@ -45,8 +46,8 @@ func main() {
 								return nil
 							}
 							defer output.Close()
-							// TODO: call phase1Initialize
-							fmt.Printf("Initializing with power %d and output %s \n", power, outputPath)
+							fmt.Printf("Initializing phase 1 parameters with power %d and output %s\n", power, outputPath)
+							phase1.Initialize(byte(power), outputPath)
 							return nil
 						},
 					},

@@ -1,4 +1,4 @@
-module github.com/bnbchain/gnark-setup-cli
+module github.com/bnbchain/zkbnb-setup
 
 go 1.19
 

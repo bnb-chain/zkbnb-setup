@@ -13,12 +13,20 @@ func main() {
 		Usage:     "Use this tool to generate parameters of Groth16 via MPC",
 		UsageText: "setup command [arguments...]",
 		Commands: []*cli.Command{
-			/* --------------------------------- Phase 1 Initialize-------------------------------- */
+			/* --------------------------------- Phase 1 Initialize -------------------------------- */
 			{
 				Name:        "p1n",
-				Usage:       "init <power>",
+				Usage:       "p1n <power> <outputPath>",
 				Description: "initialize the first phase of parameters generation for Groth16",
 				Action:      p1n,
+			},
+
+			/* --------------------------------- Phase 1 Contribute -------------------------------- */
+			{
+				Name:        "p1c",
+				Usage:       "p1c <inputPath> <outputPath>",
+				Description: "contribute random parameters for Groth16",
+				Action:      p1c,
 			},
 		},
 	}

@@ -36,3 +36,13 @@ func p1c(cCtx *cli.Context) error {
 	err := setup.ContributePhaseOne(inputPath, outputPath)
 	return err
 }
+
+func p1v(cCtx *cli.Context) error {
+	// sanity check
+	if cCtx.Args().Len() != 1 {
+		return errors.New("please provide the input path")
+	}
+	inputPath := cCtx.Args().Get(0)
+	err := setup.VerifyPhaseOne(inputPath)
+	return err
+}

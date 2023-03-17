@@ -28,6 +28,13 @@ func main() {
 				Description: "contribute random parameters for Groth16",
 				Action:      p1c,
 			},
+			/* --------------------------------- Phase 1 Verify -------------------------------- */
+			{
+				Name:        "p1v",
+				Usage:       "p1v <inputPath>",
+				Description: "verify phase 1 contributions for Groth16",
+				Action:      p1v,
+			},
 		},
 	}
 

@@ -104,7 +104,7 @@ func processSectionG2(dec *bn254.Decoder, enc *bn254.Encoder, len int, element, 
 	return &firstPoint, nil
 }
 
-func (c *Phase1Contribution) computeHash() {
+func computeHash(c *Phase1Contribution) []byte {
 	sha := sha256.New()
 	toEncode := []interface{}{
 		&c.G1.Tau,
@@ -127,5 +127,39 @@ func (c *Phase1Contribution) computeHash() {
 	for _, v := range toEncode {
 		enc.Encode(v)
 	}
-	c.Hash = sha.Sum(nil)
+
+	return sha.Sum(nil)
+}
+
+// Check e(a₁, a₂) = e(b₁, b₂)
+func sameRatio(a1, b1 bn254.G1Affine, a2, b2 bn254.G2Affine) bool {
+	var na2 bn254.G2Affine
+	na2.Neg(&a2)
+	res, err := bn254.PairingCheck(
+		[]bn254.G1Affine{a1, b1},
+		[]bn254.G2Affine{na2, b2})
+	if err != nil {
+		panic(err)
+	}
+	return res
+}
+
+func defaultPhase1Contribution() Phase1Contribution {
+	var c Phase1Contribution
+	var one fr.Element
+	one.SetOne()
+	// Initialize with generators
+	_, _, g1, g2 := bn254.Generators()
+	c.G1.Tau.Set(&g1)
+	c.G1.AlphaTau.Set(&g1)
+	c.G1.BetaTau.Set(&g1)
+	c.G2.Tau.Set(&g2)
+	c.G2.Beta.Set(&g2)
+
+	// Initialize with unit public keys
+	c.PublicKeys.Tau = genPublicKey(one, nil, 1)
+	c.PublicKeys.Alpha = genPublicKey(one, nil, 2)
+	c.PublicKeys.Beta = genPublicKey(one, nil, 3)
+	c.Hash = nil
+	return c
 }

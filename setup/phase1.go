@@ -2,10 +2,11 @@ package setup
 
 import (
 	"bufio"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"os"
-  "encoding/hex"
+
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 )
@@ -80,7 +81,7 @@ func ContributePhaseOne(inputPath, outputPath string) error {
 	}
 	defer inputFile.Close()
 	reader := bufio.NewReaderSize(inputFile, buffSize)
-	dec := bn254.NewDecoder(reader, bn254.NoSubgroupChecks())
+	dec := bn254.NewDecoder(reader)
 
 	// Output file
 	outputFile, err := os.Create(outputPath)
@@ -181,7 +182,7 @@ func ContributePhaseOne(inputPath, outputPath string) error {
 	contribution.PublicKeys.Tau = genPublicKey(tau, prevHash, 1)
 	contribution.PublicKeys.Alpha = genPublicKey(alpha, prevHash, 2)
 	contribution.PublicKeys.Beta = genPublicKey(beta, prevHash, 3)
-	contribution.computeHash()
+	contribution.Hash = computeHash(&contribution)
 
 	// Write the contribution
 	contribution.writeTo(writer)
@@ -189,5 +190,73 @@ func ContributePhaseOne(inputPath, outputPath string) error {
 	fmt.Println("Contirbution has been successful!")
 	fmt.Println("Contribution Hash := ", hex.EncodeToString(contribution.Hash))
 
+	return nil
+}
+
+func VerifyPhaseOne(inputPath string) error {
+	// Input file
+	inputFile, err := os.Open(inputPath)
+	if err != nil {
+		return err
+	}
+	defer inputFile.Close()
+	reader := bufio.NewReader(inputFile)
+
+	// Read/Write power
+	power, err := reader.ReadByte()
+	if err != nil {
+		return err
+	}
+	fmt.Println("Power := ", power)
+
+	// Read/Write nContributions+1
+	nContributions, err := reader.ReadByte()
+	if err != nil {
+		return err
+	}
+	fmt.Println("nContributions := ", nContributions)
+	N := int(math.Pow(2, float64(power)))
+
+	pos := 384*N + 64
+	inputFile.Seek(int64(pos), 1)
+	reader.Reset(inputFile)
+	var current Phase1Contribution
+	prev := defaultPhase1Contribution()
+	for i := 0; i < int(nContributions); i++ {
+		current.readFrom(reader)
+		fmt.Println("Verifying contribution ", i+1)
+		if err := verifyPhase1Contribution(current, prev); err != nil {
+			return err
+		}
+		prev = current
+	}
+	pos = 2
+	inputFile.Seek(int64(pos), 0)
+	reader.Reset(inputFile)
+	
+	// Read and verify TauG1
+	fmt.Println("Verifying powers of [τ]₁")
+	if err := verifyConsistentPowersG1(reader, 2*N-1, current.G2.Tau); err != nil {
+		return err
+	}
+
+	// Read and verify AlphaTauG1
+	fmt.Println("Verifying powers of [ατ]₁")
+	if err := verifyConsistentPowersG1(reader, N, current.G2.Tau); err != nil {
+		return err
+	}
+
+	// Read and verify BetaTauG1
+	fmt.Println("Verifying powers of [βτ]₁")
+	if err := verifyConsistentPowersG1(reader, N, current.G2.Tau); err != nil {
+		return err
+	}
+
+	// Read and verify TauG2
+	fmt.Println("Verifying powers of [τ]₂")
+	if err := verifyConsistentPowersG2(reader, N, current.G1.Tau); err != nil {
+		return err
+	}
+	fmt.Println("Contributions verification has been successful")
 	return nil
 }

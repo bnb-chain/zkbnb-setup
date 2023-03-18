@@ -1,12 +1,13 @@
-    power <byte> {N= 2^power}
-    nContributions <byte>
-    <384N+66 bytes>
+# File Structure
+
+    Power <1 byte>
+    #Contributions <2 bytes>
     {[τ⁰]₁, [τ¹]₁, [τ²]₁, …, [τ²ⁿ⁻²]₁}
     {α[τ⁰]₁, α[τ¹]₁, α[τ²]₁, …, α[τⁿ⁻¹]₁}
     {β[τ⁰]₁, β[τ¹]₁, β[τ²]₁, …, β[τⁿ⁻¹]₁}
     {[τ⁰]₂, [τ¹]₂, [τ²]₂, …, [τⁿ⁻¹]₂}
     {[β]₂}
-    Contributions each is 640 bytes
+    Contributions each is <640 bytes>
     {
         {
             {[τ¹]₁, α[τ¹]₁, β[τ¹]₁, [τ¹]₂, [β]₂} <224 bytes>

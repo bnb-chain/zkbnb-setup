@@ -5,6 +5,8 @@ import (
 	"strconv"
 
 	"github.com/bnbchain/zkbnb-setup/phase1"
+	"github.com/bnbchain/zkbnb-setup/phase2"
+	"github.com/bnbchain/zkbnb-setup/keys"
 	"github.com/urfave/cli/v2"
 )
 
@@ -44,5 +46,49 @@ func p1v(cCtx *cli.Context) error {
 	}
 	inputPath := cCtx.Args().Get(0)
 	err := phase1.Verify(inputPath)
+	return err
+}
+
+func p2n(cCtx *cli.Context) error {
+	// sanity check
+	if cCtx.Args().Len() != 3 {
+		return errors.New("please provide the input phase1 and r1cs, and output phase2 path arguments")
+	}
+	
+	phase1Path := cCtx.Args().Get(0)
+	r1csPath := cCtx.Args().Get(1)
+	phase2Path := cCtx.Args().Get(2)
+	err := phase2.Initialize(phase1Path, r1csPath, phase2Path)
+	return err
+}
+
+func p2c(cCtx *cli.Context) error {
+	// sanity check
+	if cCtx.Args().Len() != 2 {
+		return errors.New("please provide the input and output path")
+	}
+	inputPath := cCtx.Args().Get(0)
+	outputPath := cCtx.Args().Get(1)
+	err := phase2.Contribute(inputPath, outputPath)
+	return err
+}
+
+func p2v(cCtx *cli.Context) error {
+	// sanity check
+	if cCtx.Args().Len() != 1 {
+		return errors.New("please provide the input path")
+	}
+	inputPath := cCtx.Args().Get(0)
+	err := phase2.Verify(inputPath)
+	return err
+}
+
+func extract(cCtx *cli.Context) error {
+	// sanity check
+	if cCtx.Args().Len() != 1 {
+		return errors.New("please provide the input path")
+	}
+	inputPath := cCtx.Args().Get(0)
+	err := keys.ExtractKeys(inputPath)
 	return err
 }

@@ -17,8 +17,8 @@
         [τ]₁                <32 bytes>
         [α]₁                <32 bytes>
         [β]₁                <32 bytes>
-        [τ]₂                <32 bytes>
-        [β]₂                <32 bytes>
+        [τ]₂                <64 bytes>
+        [β]₂                <64 bytes>
         {sτ₁, sxτ₁, spxτ₂}  <128 bytes>
         {sα₁, sxα₁, spxα₂}  <128 bytes>
         {sβ₁, sxβ₁, spxβ₂}  <128 bytes>

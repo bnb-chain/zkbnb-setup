@@ -1,4 +1,4 @@
-package phase1
+package common
 
 import (
 	"math/big"
@@ -13,7 +13,7 @@ type PublicKey struct {
 	SPX bn254.G2Affine
 }
 
-func genPublicKey(x fr.Element, challenge []byte, dst byte) PublicKey {
+func GenPublicKey(x fr.Element, challenge []byte, dst byte) PublicKey {
 	var pk PublicKey
 	_, _, g1, _ := bn254.Generators()
 
@@ -29,7 +29,7 @@ func genPublicKey(x fr.Element, challenge []byte, dst byte) PublicKey {
 	pk.SX.ScalarMultiplication(&pk.S, &xBi)
 
 	// generate R based on sG1, sxG1, challenge, and domain separation tag (tau, alpha or beta)
-	SP := genSP(pk.S, pk.SX, challenge, dst)
+	SP := GenSP(pk.S, pk.SX, challenge, dst)
 
 	// compute x*spG2
 	pk.SPX.ScalarMultiplication(&SP, &xBi)
@@ -37,7 +37,7 @@ func genPublicKey(x fr.Element, challenge []byte, dst byte) PublicKey {
 }
 
 // Generate SP in G₂ as Hash(gˢ, gˢˣ, challenge, dst)
-func genSP(sG1, sxG1 bn254.G1Affine, challenge []byte, dst byte) bn254.G2Affine {
+func GenSP(sG1, sxG1 bn254.G1Affine, challenge []byte, dst byte) bn254.G2Affine {
 	buffer := append(sG1.Marshal()[:], sxG1.Marshal()...)
 	buffer = append(buffer, challenge...)
 	spG2, err := bn254.HashToG2(buffer, []byte{dst})

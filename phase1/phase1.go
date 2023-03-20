@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"os"
 
+	"github.com/bnbchain/zkbnb-setup/common"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 )
@@ -186,9 +187,9 @@ func Contribute(inputPath, outputPath string) error {
 	}
 
 	// Generate public keys
-	contribution.PublicKeys.Tau = genPublicKey(tau, prevHash, 1)
-	contribution.PublicKeys.Alpha = genPublicKey(alpha, prevHash, 2)
-	contribution.PublicKeys.Beta = genPublicKey(beta, prevHash, 3)
+	contribution.PublicKeys.Tau = common.GenPublicKey(tau, prevHash, 1)
+	contribution.PublicKeys.Alpha = common.GenPublicKey(alpha, prevHash, 2)
+	contribution.PublicKeys.Beta = common.GenPublicKey(beta, prevHash, 3)
 	contribution.Hash = computeHash(&contribution)
 
 	// Write the contribution

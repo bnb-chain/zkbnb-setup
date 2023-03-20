@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"io"
 
+	"github.com/bnbchain/zkbnb-setup/common"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 )
 
@@ -15,7 +16,7 @@ type Contribution struct {
 		Tau, Beta bn254.G2Affine
 	}
 	PublicKeys struct {
-		Tau, Alpha, Beta PublicKey
+		Tau, Alpha, Beta common.PublicKey
 	}
 	Hash []byte
 }

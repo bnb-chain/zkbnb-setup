@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/bnbchain/zkbnb-setup/common"
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
@@ -230,9 +231,9 @@ func linearCombinationG2(dec *bn254.Decoder, N int) (bn254.G2Affine, bn254.G2Aff
 
 func verifyContribution(current, prev Contribution) error {
 	// Compute SP for τ, α, β
-	tauSP := genSP(current.PublicKeys.Tau.S, current.PublicKeys.Tau.SX, prev.Hash[:], 1)
-	alphaSP := genSP(current.PublicKeys.Alpha.S, current.PublicKeys.Alpha.SX, prev.Hash[:], 2)
-	betaSP := genSP(current.PublicKeys.Beta.S, current.PublicKeys.Beta.SX, prev.Hash[:], 3)
+	tauSP := common.GenSP(current.PublicKeys.Tau.S, current.PublicKeys.Tau.SX, prev.Hash[:], 1)
+	alphaSP := common.GenSP(current.PublicKeys.Alpha.S, current.PublicKeys.Alpha.SX, prev.Hash[:], 2)
+	betaSP := common.GenSP(current.PublicKeys.Beta.S, current.PublicKeys.Beta.SX, prev.Hash[:], 3)
 
 	// Check for knowledge of toxic parameters
 	if !sameRatio(current.PublicKeys.Tau.S, current.PublicKeys.Tau.SX, current.PublicKeys.Tau.SPX, tauSP) {

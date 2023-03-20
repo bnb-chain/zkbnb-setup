@@ -103,7 +103,7 @@ func Contribute(inputPath, outputPath string) error {
 	fmt.Printf("Power := %d and  #Contributions := %d\n", header.Power, header.Contributions)
 	N := int(math.Pow(2, float64(header.Power)))
 	header.Contributions++
-	if err := header.writeTo(outputFile); err!= nil {
+	if err := header.writeTo(outputFile); err != nil {
 		return err
 	}
 
@@ -301,5 +301,11 @@ func Verify(inputPath string) error {
 	}
 
 	fmt.Println("Contributions verification has been successful")
+	return nil
+}
+
+// Convert Phase 1 SRS from Monomial form to Lagrange Basis
+func Finalize(inputPhase1Path string) error {
+
 	return nil
 }

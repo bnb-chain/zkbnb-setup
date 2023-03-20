@@ -13,7 +13,7 @@ import (
 func p1n(cCtx *cli.Context) error {
 	// sanity check
 	if cCtx.Args().Len() != 2 {
-		return errors.New("please provide the power and output path arguments")
+		return errors.New("please provide the correct arguments")
 	}
 	powerStr := cCtx.Args().Get(0)
 	power, err := strconv.Atoi(powerStr)
@@ -31,7 +31,7 @@ func p1n(cCtx *cli.Context) error {
 func p1c(cCtx *cli.Context) error {
 	// sanity check
 	if cCtx.Args().Len() != 2 {
-		return errors.New("please provide the input and output path")
+		return errors.New("please provide the correct arguments")
 	}
 	inputPath := cCtx.Args().Get(0)
 	outputPath := cCtx.Args().Get(1)
@@ -42,30 +42,42 @@ func p1c(cCtx *cli.Context) error {
 func p1v(cCtx *cli.Context) error {
 	// sanity check
 	if cCtx.Args().Len() != 1 {
-		return errors.New("please provide the input path")
+		return errors.New("please provide the correct arguments")
 	}
 	inputPath := cCtx.Args().Get(0)
 	err := phase1.Verify(inputPath)
 	return err
 }
 
-func p2n(cCtx *cli.Context) error {
+func p1f(cCtx *cli.Context) error {
 	// sanity check
-	if cCtx.Args().Len() != 3 {
-		return errors.New("please provide the input phase1 and r1cs, and output phase2 path arguments")
+	if cCtx.Args().Len() != 1 {
+		return errors.New("please provide the correct arguments")
 	}
 	
 	phase1Path := cCtx.Args().Get(0)
-	r1csPath := cCtx.Args().Get(1)
-	phase2Path := cCtx.Args().Get(2)
-	err := phase2.Initialize(phase1Path, r1csPath, phase2Path)
+	err := phase1.Finalize(phase1Path)
+	return err
+}
+
+func p2n(cCtx *cli.Context) error {
+	// sanity check
+	if cCtx.Args().Len() != 4 {
+		return errors.New("please provide the correct arguments")
+	}
+	
+	phase1Path := cCtx.Args().Get(0)
+	lagPath := cCtx.Args().Get(1)
+	r1csPath := cCtx.Args().Get(2)
+	phase2Path := cCtx.Args().Get(3)
+	err := phase2.Initialize(phase1Path, lagPath, r1csPath, phase2Path)
 	return err
 }
 
 func p2c(cCtx *cli.Context) error {
 	// sanity check
 	if cCtx.Args().Len() != 2 {
-		return errors.New("please provide the input and output path")
+		return errors.New("please provide the correct arguments")
 	}
 	inputPath := cCtx.Args().Get(0)
 	outputPath := cCtx.Args().Get(1)
@@ -76,7 +88,7 @@ func p2c(cCtx *cli.Context) error {
 func p2v(cCtx *cli.Context) error {
 	// sanity check
 	if cCtx.Args().Len() != 1 {
-		return errors.New("please provide the input path")
+		return errors.New("please provide the correct arguments")
 	}
 	inputPath := cCtx.Args().Get(0)
 	err := phase2.Verify(inputPath)
@@ -86,7 +98,7 @@ func p2v(cCtx *cli.Context) error {
 func extract(cCtx *cli.Context) error {
 	// sanity check
 	if cCtx.Args().Len() != 1 {
-		return errors.New("please provide the input path")
+		return errors.New("please provide the correct arguments")
 	}
 	inputPath := cCtx.Args().Get(0)
 	err := keys.ExtractKeys(inputPath)

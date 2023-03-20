@@ -11,15 +11,21 @@ The value of `2ᵖ` determines the maximum number of constraints for circuits se
 
 ## Initialization
 **Note** Value between `<>` are arguments replaced by actual values during the setup
-1. Coordinator run the command `zkbnb-setup p1n <p> <outputPath>`.  For example, `zkbnb-setup p1n 20 000.ph1`
+1. Coordinator run the command `zkbnb-setup p1n <p> <outputPath>`.
 
 ## Contributions
 This is a sequential process that will be repeated for each contributor.
-1. The coordinator sends the latest ```*.ph1``` file to the current contributor, (for the first contribution, this will be the file generated the initialization step)
-2. The contributor run the command `zkbnb-setup p1c <inputPath.ph1> <outputPath.ph1>`.  For example, `zkbnb-setup p1c 005.ph1 006.ph1`, assuming `005.ph1` was the file received from the coordinator.
+1. The coordinator sends the latest ```*.ph1``` file to the current contributor
+2. The contributor run the command `zkbnb-setup p1c <inputPath.ph1> <outputPath.ph1>`.
 3. Upon successful contribution, the program will output **contribution hash** which must be attested to
 4. The contributor sends the output file back to the coordinator
-5. The coordinator verifies the file by running `zkbnb-setup p1v <inputPath.ph1>`. For example, `zkbnb-setup p1v 006.ph1`
+5. The coordinator verifies the file by running `zkbnb-setup p1v <inputPath.ph1>`. 
 6. Upon successful verification, the coordinator asks the contributor to attest their contribution.
 
-**Security Note** It is important for the coordinator to keep track of the contribution hashes output by `zkbnb-setup p1v` to determine whether the user has maliciously replaced previous contributions or re-initiated one on its own
+## Finalization
+This is the last step after concoluding phase 1 ceremony, the objective is to convert SRS from Monomial to Lagrange basis. 
+1. Coordinator run the command `zkbnb-setup p1f <inputPath.ph1`
+
+
+## Security Note
+**It is important for the coordinator to keep track of the contribution hashes output by `zkbnb-setup p1v` to determine whether the user has maliciously replaced previous contributions or re-initiated one on its own**

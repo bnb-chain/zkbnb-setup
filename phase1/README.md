@@ -1,20 +1,26 @@
 # File Structure
-
-    Power <1 byte>
-    #Contributions <2 bytes>
-    {g₁, [τ]₁, [τ²]₁, …, [τ²ⁿ⁻²]₁}
-    {[α]₁, α[τ]₁, α[τ²]₁, …, α[τⁿ⁻¹]₁}
-    {[β]₁, β[τ]₁, β[τ²]₁, …, β[τⁿ⁻¹]₁}
-    {g₂, [τ]₂, [τ²]₂, …, [τⁿ⁻¹]₂}
-    {[β]₂}
-    Contributions each is <640 bytes>
+    Header 
     {
-        {
-            {[τ]₁, [α]₁, [β]₁, [τ]₂, [β]₂} <224 bytes>
-            {sτ₁, sxτ₁, spxτ₂} <128 bytes>
-            {sα₁, sxα₁, spxα₂} <128 bytes>
-            {sβ₁, sxβ₁, spxβ₂} <128 bytes>
-            hash <32 bytes>
-        },
-        ...
+        Power               <1 byte>
+        #Contributions      <2 bytes>
+    }
+    Parameters
+    {
+        {[τ]₁}              <32(2²ᵖ⁻¹) bytes>
+        {[ατ]₁}             <32(2ᴾ⁻¹) bytes>
+        {[βτ]₁}             <32(2ᴾ⁻¹) bytes>
+        {[τ]₂}              <64(2ᴾ⁻¹) bytes>
+        [β]₂                <64 bytes>
+    }
+    Contributions
+    {
+        [τ]₁                <32 bytes>
+        [α]₁                <32 bytes>
+        [β]₁                <32 bytes>
+        [τ]₂                <32 bytes>
+        [β]₂                <32 bytes>
+        {sτ₁, sxτ₁, spxτ₂}  <128 bytes>
+        {sα₁, sxα₁, spxα₂}  <128 bytes>
+        {sβ₁, sxβ₁, spxβ₂}  <128 bytes>
+        hash                <32 bytes>
     }

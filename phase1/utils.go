@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	"runtime"
-	"sync"
 
 	"github.com/bnbchain/zkbnb-setup/common"
 	"github.com/consensys/gnark-crypto/ecc"
@@ -29,7 +27,7 @@ func powers(a, b *fr.Element, n int) []fr.Element {
 
 // Multiply each element by b
 func batchMul(a []fr.Element, b *fr.Element) {
-	parallelize(len(a), func(start, end int) {
+	common.Parallelize(len(a), func(start, end int) {
 		for i := start; i < end; i++ {
 			a[i].Mul(&a[i], b)
 		}
@@ -68,7 +66,7 @@ func scaleG1(dec *bn254.Decoder, enc *bn254.Encoder, N int, tau, multiplicand *f
 		}
 
 		// Process the batch
-		parallelize(readCount, func(start, end int) {
+		common.Parallelize(readCount, func(start, end int) {
 			for i := start; i < end; i++ {
 				var tmpBi big.Int
 				scalars[i].BigInt(&tmpBi)
@@ -127,7 +125,7 @@ func scaleG2(dec *bn254.Decoder, enc *bn254.Encoder, N int, tau *fr.Element) (*b
 		startPower.Mul(&scalars[readCount-1], tau)
 
 		// Process the batch
-		parallelize(readCount, func(start, end int) {
+		common.Parallelize(readCount, func(start, end int) {
 			for i := start; i < end; i++ {
 				var tmpBi big.Int
 				scalars[i].BigInt(&tmpBi)
@@ -156,7 +154,7 @@ func scaleG2(dec *bn254.Decoder, enc *bn254.Encoder, N int, tau *fr.Element) (*b
 }
 
 func randomize(r []fr.Element) {
-	parallelize(len(r), func(start, end int) {
+	common.Parallelize(len(r), func(start, end int) {
 		for i := start; i < end; i++ {
 			r[i].SetRandom()
 		}
@@ -283,42 +281,4 @@ func sameRatio(a1, b1 bn254.G1Affine, a2, b2 bn254.G2Affine) bool {
 		panic(err)
 	}
 	return res
-}
-
-// Parallelize process in parallel the work function
-func parallelize(nbIterations int, work func(int, int), maxCpus ...int) {
-
-	nbTasks := runtime.NumCPU()
-	if len(maxCpus) == 1 {
-		nbTasks = maxCpus[0]
-	}
-	nbIterationsPerCpus := nbIterations / nbTasks
-
-	// more CPUs than tasks: a CPU will work on exactly one iteration
-	if nbIterationsPerCpus < 1 {
-		nbIterationsPerCpus = 1
-		nbTasks = nbIterations
-	}
-
-	var wg sync.WaitGroup
-
-	extraTasks := nbIterations - (nbTasks * nbIterationsPerCpus)
-	extraTasksOffset := 0
-
-	for i := 0; i < nbTasks; i++ {
-		wg.Add(1)
-		_start := i*nbIterationsPerCpus + extraTasksOffset
-		_end := _start + nbIterationsPerCpus
-		if extraTasks > 0 {
-			_end++
-			extraTasks--
-			extraTasksOffset++
-		}
-		go func() {
-			work(_start, _end)
-			wg.Done()
-		}()
-	}
-
-	wg.Wait()
 }

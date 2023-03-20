@@ -1,8 +1,12 @@
 package phase1
 
 import (
+	"bufio"
+	"io"
+	"math"
 	"math/big"
 	"math/bits"
+	"os"
 	"runtime"
 
 	"github.com/bnbchain/zkbnb-setup/common"
@@ -181,64 +185,88 @@ func BitReverseG2(a []bn254.G2Affine) {
 	}
 }
 
-func lagrangeG1(dec *bn254.Decoder, enc *bn254.Encoder, size int, domain *fft.Domain) error {
-	// Read points
-	points := make([]bn254.G1Affine, size)
-	for i := 0; i < size; i++ {
-		if err := dec.Decode(&points[i]); err != nil {
-			return err
-		}
-	}
-
-	numCPU := uint64(runtime.NumCPU())
-	maxSplits := bits.TrailingZeros64(ecc.NextPowerOfTwo(numCPU))
-
-	// Convert to Lagrange Basis
-	difFFTG1(points, domain.TwiddlesInv, 0, maxSplits, nil)
-	BitReverseG1(points)
-	var invBigint big.Int
-	domain.CardinalityInv.BigInt(&invBigint)
-	common.Parallelize(size, func(start, end int) {
-		for i := start; i < end; i++ {
-			points[i].ScalarMultiplication(&points[i], &invBigint)
-		}
-	})
-
-	// Write points
-	for i := 0; i < size; i++ {
-		if err := enc.Encode(&points[i]); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-func lagrangeG2(dec *bn254.Decoder, enc *bn254.Encoder, size int, domain *fft.Domain) error {
-	// Read the points
-	points := make([]bn254.G1Affine, size)
-	for i := 0; i < size; i++ {
-		if err := dec.Decode(&points[i]); err != nil {
-			return err
-		}
-	}
-
-	numCPU := uint64(runtime.NumCPU())
-	maxSplits := bits.TrailingZeros64(ecc.NextPowerOfTwo(numCPU))
-
-	// Convert to Lagrange Basis
-	difFFTG1(points, domain.TwiddlesInv, 0, maxSplits, nil)
-	BitReverseG1(points)
-	var invBigint big.Int
-	domain.CardinalityInv.BigInt(&invBigint)
-	common.Parallelize(size, func(start, end int) {
-		for i := start; i < end; i++ {
-			points[i].ScalarMultiplication(&points[i], &invBigint)
-		}
-	})
-
-	// Serialize the points
-	if err := enc.Encode(points); err != nil {
+func lagrangifyG1(file *os.File, position int64, N int, domain *fft.Domain) error {
+	// Seek to position
+	if _, err := file.Seek(position, io.SeekStart); err != nil {
 		return err
 	}
-	
+	// Use buffered IO to write parameters efficiently
+	buffSize := int(math.Pow(2, 20))
+	reader := bufio.NewReaderSize(file, buffSize)
+	writer := bufio.NewWriterSize(file, buffSize)
+	defer writer.Flush()
+	dec := bn254.NewDecoder(reader)
+	enc := bn254.NewEncoder(writer)
+
+	buff := make([]bn254.G1Affine, N)
+	for i := 0; i < N; i++ {
+		if err := dec.Decode(&buff[i]); err != nil {
+			return err
+		}
+	}
+	numCPU := uint64(runtime.NumCPU())
+	maxSplits := bits.TrailingZeros64(ecc.NextPowerOfTwo(numCPU))
+	difFFTG1(buff, domain.TwiddlesInv, 0, maxSplits, nil)
+	BitReverseG1(buff)
+	var invBigint big.Int
+	domain.CardinalityInv.BigInt(&invBigint)
+	common.Parallelize(len(buff), func(start, end int) {
+		for i := start; i < end; i++ {
+			buff[i].ScalarMultiplication(&buff[i], &invBigint)
+		}
+	})
+	// Append to the end
+	if _, err := file.Seek(0, io.SeekEnd); err != nil {
+		return err
+	}
+	for i := 0; i < N; i++ {
+		if err := enc.Encode(&buff[i]); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func lagrangifyG2(file *os.File, position int64, N int, domain *fft.Domain) error {
+	// Seek to position
+	if _, err := file.Seek(position, io.SeekStart); err != nil {
+		return err
+	}
+	// Use buffered IO to write parameters efficiently
+	buffSize := int(math.Pow(2, 20))
+	reader := bufio.NewReaderSize(file, buffSize)
+	writer := bufio.NewWriterSize(file, buffSize)
+	defer writer.Flush()
+	dec := bn254.NewDecoder(reader)
+	enc := bn254.NewEncoder(writer)
+
+	buff := make([]bn254.G2Affine, N)
+	for i := 0; i < N; i++ {
+		if err := dec.Decode(&buff[i]); err != nil {
+			return err
+		}
+	}
+	numCPU := uint64(runtime.NumCPU())
+	maxSplits := bits.TrailingZeros64(ecc.NextPowerOfTwo(numCPU))
+	difFFTG2(buff, domain.TwiddlesInv, 0, maxSplits, nil)
+	BitReverseG2(buff)
+	var invBigint big.Int
+	domain.CardinalityInv.BigInt(&invBigint)
+	common.Parallelize(len(buff), func(start, end int) {
+		for i := start; i < end; i++ {
+			buff[i].ScalarMultiplication(&buff[i], &invBigint)
+		}
+	})
+	// Append to the end
+	if _, err := file.Seek(0, io.SeekEnd); err != nil {
+		return err
+	}
+	for i := 0; i < N; i++ {
+		if err := enc.Encode(&buff[i]); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

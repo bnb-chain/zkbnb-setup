@@ -12,6 +12,7 @@ import (
 	"github.com/bnbchain/zkbnb-setup/common"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
+	"github.com/consensys/gnark-crypto/ecc/bn254/fr/fft"
 )
 
 func Initialize(power byte, outputPath string) error {
@@ -306,6 +307,49 @@ func Verify(inputPath string) error {
 
 // Convert Phase 1 SRS from Monomial form to Lagrange Basis
 func Finalize(inputPhase1Path string) error {
+	// Input Phase 1
+	inputPhase1File, err := os.OpenFile(inputPhase1Path, os.O_RDWR, 0600)
+	if err != nil {
+		return err
+	}
+	defer inputPhase1File.Close()
+
+	// Read header
+	var header Header
+	if err := header.ReadFrom(inputPhase1File); err != nil {
+		return err
+	}
+	N := int(math.Pow(2, float64(header.Power)))
+	domain := fft.NewDomain(uint64(N))
+	fmt.Printf("Finalize Phase 1, Converting SRS from Monomial form to Lagrange Basis where N:=%d\n", N)
+
+	// Lagrangify TauG1
+	pos := int64(3)
+	fmt.Println("Lagrangifying TauG1")
+	if err := lagrangifyG1(inputPhase1File, pos, N, domain); err != nil {
+		return err
+	}
+	// Lagrangify AlphaTauG1
+	// Seek to the first AlphaTauG1
+	pos += 32*(2*int64(N)-1)
+	fmt.Println("Lagrangifying AlphaTauG1")
+	if err := lagrangifyG1(inputPhase1File, pos, N, domain); err != nil {
+		return err
+	}
+
+	// Lagrangify BetaTauG1
+	pos += 32 * int64(N)
+	fmt.Println("Lagrangifying BetaTauG1")
+	if err := lagrangifyG1(inputPhase1File, pos, N, domain); err != nil {
+		return err
+	}
+
+	// Lagrangify TauG2
+	pos += 32 * int64(N)
+	fmt.Println("Lagrangifying TauG2")
+	if err := lagrangifyG2(inputPhase1File, pos, N, domain); err != nil {
+		return err
+	}
 
 	return nil
 }

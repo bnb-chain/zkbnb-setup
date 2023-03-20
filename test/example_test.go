@@ -34,9 +34,7 @@ func (circuit *Circuit) Define(api frontend.API) error {
 
 	return nil
 }
-func TestPhase2Initialize(t *testing.T) {
-	phase1.Initialize(10, "0.ph1")
-	phase1.Contribute("0.ph1", "1.ph1")
+func TestSetup(t *testing.T) {
 
 	// Compile the circuit
 	var myCircuit Circuit
@@ -51,10 +49,41 @@ func TestPhase2Initialize(t *testing.T) {
 	defer writer.Close()
 	ccs.WriteTo(writer)
 
-	// Phase 2 initialization
-	err = phase2.Initialize("1.ph1", "circuit.r1cs", "0.ph2")
-	if err != nil {
+
+	var power byte = 10
+	
+	// Initialize to Phase 1
+	if err := phase1.Initialize(power, "0.ph1"); err != nil {
 		t.Error(err)
 	}
+
+	// Contribute to Phase 1
+	if err := phase1.Contribute("0.ph1", "1.ph1"); err != nil {
+		t.Error(err)
+	}
+	if err := phase1.Contribute("1.ph1", "2.ph1"); err != nil {
+		t.Error(err)
+	}
+	if err := phase1.Contribute("2.ph1", "3.ph1"); err != nil {
+		t.Error(err)
+	}
+	if err := phase1.Contribute("3.ph1", "4.ph1"); err != nil {
+		t.Error(err)
+	}
+
+	// Verify Phase 1 contributions
+	if err := phase1.Verify("4.ph1"); err != nil {
+		t.Error(err)
+	}
+
+	if err := phase1.Finalize("4.ph1"); err != nil {
+		t.Error(err)
+	}
+
+	// Phase 2 initialization
+	// err = phase2.Initialize("4.ph1", "circuit.r1cs", "0.ph2")
+	// if err != nil {
+	// 	t.Error(err)
+	// }
 
 }

@@ -62,15 +62,14 @@ func p1f(cCtx *cli.Context) error {
 
 func p2n(cCtx *cli.Context) error {
 	// sanity check
-	if cCtx.Args().Len() != 4 {
+	if cCtx.Args().Len() != 3 {
 		return errors.New("please provide the correct arguments")
 	}
 	
 	phase1Path := cCtx.Args().Get(0)
-	lagPath := cCtx.Args().Get(1)
-	r1csPath := cCtx.Args().Get(2)
-	phase2Path := cCtx.Args().Get(3)
-	err := phase2.Initialize(phase1Path, lagPath, r1csPath, phase2Path)
+	r1csPath := cCtx.Args().Get(1)
+	phase2Path := cCtx.Args().Get(2)
+	err := phase2.Initialize(phase1Path, r1csPath, phase2Path)
 	return err
 }
 

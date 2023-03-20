@@ -6,11 +6,11 @@ import (
 )
 
 type Header struct {
-	Power byte
+	Power         byte
 	Contributions uint16
 }
 
-func (p *Header) readFrom(reader io.Reader) error {
+func (p *Header) ReadFrom(reader io.Reader) error {
 	buffPower := make([]byte, 1)
 	// Read NConstraints
 	if _, err := reader.Read(buffPower); err != nil {

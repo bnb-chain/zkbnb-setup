@@ -97,11 +97,15 @@ func Contribute(inputPath, outputPath string) error {
 
 	// Read/Write header with extra contribution
 	var header Header
-	header.readFrom(inputFile)
+	if err := header.ReadFrom(inputFile); err != nil {
+		return err
+	}
 	fmt.Printf("Power := %d and  #Contributions := %d\n", header.Power, header.Contributions)
 	N := int(math.Pow(2, float64(header.Power)))
 	header.Contributions++
-	header.writeTo(outputFile)
+	if err := header.writeTo(outputFile); err!= nil {
+		return err
+	}
 
 	// Use buffered IO to write parameters efficiently
 	buffSize := int(math.Pow(2, 30))
@@ -211,7 +215,9 @@ func Verify(inputPath string) error {
 
 	// Read header
 	var header Header
-	header.readFrom(inputFile)
+	if err := header.ReadFrom(inputFile); err != nil {
+		return err
+	}
 	fmt.Printf("Power := %d and  #Contributions := %d\n", header.Power, header.Contributions)
 	N := int(math.Pow(2, float64(header.Power)))
 

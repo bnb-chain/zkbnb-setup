@@ -174,7 +174,7 @@ func Contribute(inputPath, outputPath string) error {
 	nExistingContributions := int(header.Contributions - 1)
 	var c Contribution
 	for i := 0; i < nExistingContributions; i++ {
-		if _, err := c.readFrom(reader); err != nil {
+		if _, err := c.ReadFrom(reader); err != nil {
 			return err
 		}
 		if _, err := c.writeTo(writer); err != nil {
@@ -260,7 +260,7 @@ func Verify(inputPath string) error {
 	var current Contribution
 	prev := defaultContribution()
 	for i := 0; i < int(header.Contributions); i++ {
-		current.readFrom(reader)
+		current.ReadFrom(reader)
 		fmt.Printf("Verifying contribution %d with Hash := %s\n", i+1, hex.EncodeToString(current.Hash))
 		if err := verifyContribution(current, prev); err != nil {
 			return err

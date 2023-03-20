@@ -7,6 +7,7 @@ import (
 	"github.com/bnbchain/zkbnb-setup/common"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 )
+const ContributionSize = 640
 
 type Contribution struct {
 	G1 struct {
@@ -49,7 +50,7 @@ func (c *Contribution) writeTo(writer io.Writer) (int64, error) {
 	return int64(nBytes), err
 }
 
-func (c *Contribution) readFrom(reader io.Reader) (int64, error) {
+func (c *Contribution) ReadFrom(reader io.Reader) (int64, error) {
 	toDecode := []interface{}{
 		&c.G1.Tau,
 		&c.G1.Alpha,

@@ -20,7 +20,7 @@
     Parameters {
         [δ]₁             <32 bytes>
         [δ]₂             <32 bytes>
-        L                <32(#InternalWires) bytes>
+        L                <32(#Internal) bytes>
         H                <32(#Domain-1) bytes>
     }
     Contributions

@@ -1,5 +1,5 @@
 package keys
 
-func ExtractKeys(inputPath string) error {
+func ExtractKeys(phase2Path , evalsPath string) error {
 	return nil
 }

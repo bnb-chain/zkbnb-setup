@@ -1,4 +1,4 @@
-# Phase 1 File Format
+# Phase 1 File Format for *.ph1
     Header                      <3 bytes>
     {
         Power                   <1 byte>
@@ -37,26 +37,18 @@
 
 
 
-# Phase 2 File Format
-    Header 
+# Phase 2 File Format for *.ph2
+    Header                      <18 bytes>
     {
-        #Witness               <4  bytes>
+        #Witness                <4  bytes>
         #Public                 <4  bytes>
         #Constraints            <4  bytes>
         #Domain                 <4  bytes>
-        #Contributions          <2 bytes>
-        [α]₁                    <32 bytes>
-        [β]₁                    <32 bytes>
-        [β]₂                    <64 bytes>
-    }
-    Evaluation {
-        [A]₁                    <32(#Witness+#Public)+4 bytes>
-        [B]₁                    <32(#Witness+#Public)+4 bytes>
-        [B]₂                    <64(#Witness+#Public)+4 bytes>
+        #Contributions          <2  bytes>
     }
     Parameters {
         [δ]₁                    <32 bytes>
-        [δ]₂                    <32 bytes>
+        [δ]₂                    <64 bytes>
         Z                       <32(#Domain-1) bytes>
         L                       <32(#Public + #Witness) bytes>
     }
@@ -74,3 +66,14 @@
 
 
 **Note** only the Witness part of L is updated in contributions
+# Phase 2 File Format for *.ev
+
+    Evaluation 
+    {
+        [α]₁                    <32 bytes>
+        [β]₁                    <32 bytes>
+        [β]₂                    <64 bytes>
+        [A]₁                    <32(#Witness+#Public)+4 bytes>
+        [B]₁                    <32(#Witness+#Public)+4 bytes>
+        [B]₂                    <64(#Witness+#Public)+4 bytes>
+    }

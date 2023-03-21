@@ -49,9 +49,8 @@ func TestSetup(t *testing.T) {
 	defer writer.Close()
 	ccs.WriteTo(writer)
 
-
 	var power byte = 10
-	
+
 	// Initialize to Phase 1
 	if err := phase1.Initialize(power, "0.ph1"); err != nil {
 		t.Error(err)
@@ -81,8 +80,20 @@ func TestSetup(t *testing.T) {
 	}
 
 	// Phase 2 initialization
-	err = phase2.Initialize("4.ph1", "circuit.r1cs", "0.ph2")
-	if err != nil {
+	if err := phase2.Initialize("4.ph1", "circuit.r1cs", "0.ph2", "evals.ev"); err != nil {
+		t.Error(err)
+	}
+
+	// Contribute to Phase 2
+	if err := phase2.Contribute("0.ph2", "1.ph2"); err != nil {
+		t.Error(err)
+	}
+
+	if err := phase2.Contribute("1.ph2", "2.ph2"); err != nil {
+		t.Error(err)
+	}
+
+	if err := phase2.Contribute("2.ph2", "3.ph2"); err != nil {
 		t.Error(err)
 	}
 

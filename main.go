@@ -45,7 +45,7 @@ func main() {
 			/* --------------------------------- Phase 2 Initialize -------------------------------- */
 			{
 				Name:        "p2n",
-				Usage:       "p2n <inputPhase1Path> <inputR1CS> <outputPhase2>",
+				Usage:       "p2n <inputPhase1Path> <inputR1CS> <outputPhase2> <evaluations>",
 				Description: "initialize phase 2 for the given circuit",
 				Action:      p2n,
 			},
@@ -67,7 +67,7 @@ func main() {
 			/* --------------------------------- Keys Extraction -------------------------------- */
 			{
 				Name:        "keys",
-				Usage:       "keys <inputPath>",
+				Usage:       "keys <inputPath> <evaluations>",
 				Description: "extract proving and verifying keys",
 				Action:      extract,
 			},

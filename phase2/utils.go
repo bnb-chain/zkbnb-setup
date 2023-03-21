@@ -35,7 +35,7 @@ func processHeader(r1cs *cs_bn254.R1CS, inputPhase1File, outputPhase2File *os.Fi
 		res := 2
 		for i := 1; i < 28; i++ { // max power is 28
 			if res >= number {
-				return i
+				return res
 			} else {
 				res *= 2
 			}
@@ -45,22 +45,8 @@ func processHeader(r1cs *cs_bn254.R1CS, inputPhase1File, outputPhase2File *os.Fi
 	}
 	// Initialize Domain, #Witness and #Public
 	header2.Domain = uint32(nextPowerofTwo(r1cs.GetNbConstraints()))
-	header2.Witness = uint32(r1cs.GetNbInternalVariables()+r1cs.GetNbSecretVariables())
+	header2.Witness = uint32(r1cs.GetNbInternalVariables() + r1cs.GetNbSecretVariables())
 	header2.Public = uint32(r1cs.GetNbPublicVariables())
-
-	// Read [α]₁ , [β]₁ , [β]₂  from phase1 last contribution (Check Phase 1 file format for reference)
-	var pos int64 = 35 + 192*int64(N) + int64((header1.Contributions-1)*640)
-	if _, err := inputPhase1File.Seek(pos, io.SeekStart); err != nil {
-		return nil, nil, err
-	}
-	var c1 phase1.Contribution
-	if _, err := c1.ReadFrom(inputPhase1File); err != nil {
-		return nil, nil, err
-	}
-	// Set [α]₁ , [β]₁ , [β]₂
-	header2.G1.Alpha.Set(&c1.G1.Alpha)
-	header2.G1.Beta.Set(&c1.G1.Beta)
-	header2.G2.Beta.Set(&c1.G2.Beta)
 
 	// Write header of phase 2
 	if err := header2.writeTo(outputPhase2File); err != nil {
@@ -70,23 +56,35 @@ func processHeader(r1cs *cs_bn254.R1CS, inputPhase1File, outputPhase2File *os.Fi
 	return &header1, &header2, nil
 }
 
-func processEvaluations(r1cs *cs_bn254.R1CS, header1 *phase1.Header, header2 *Header, inputPhase1File *os.File, outputPhase2File *os.File) error {
-	// Seek to Lagrange SRS TauG1
+func processEvaluations(r1cs *cs_bn254.R1CS, header1 *phase1.Header, header2 *Header, inputPhase1File *os.File, outputEvalsFile *os.File) error {
+	// Read [α]₁ , [β]₁ , [β]₂  from phase1 last contribution (Check Phase 1 file format for reference)
 	N := int(math.Pow(2, float64(header1.Power)))
-	var pos int64 = 3 + 192*int64(N) + 32 + int64((header1.Contributions)*640)
+	pos := 35 + 192*int64(N) + int64((header1.Contributions-1)*640)
 	if _, err := inputPhase1File.Seek(pos, io.SeekStart); err != nil {
+		return  err
+	}
+	var c1 phase1.Contribution
+	if _, err := c1.ReadFrom(inputPhase1File); err != nil {
 		return err
 	}
+
+	dec := bn254.NewDecoder(inputPhase1File)
+	enc := bn254.NewEncoder(outputEvalsFile)
+
+	// Write [α]₁ , [β]₁ , [β]₂
+	if err := enc.Encode(&c1.G1.Alpha); err!= nil {
+		return err
+	}
+	if err := enc.Encode(&c1.G1.Beta); err!= nil {
+		return err
+	}
+	if err := enc.Encode(&c1.G2.Beta); err!= nil {
+		return err
+	}
+	
 	nWires := header2.Witness + header2.Public
 	tauG1 := make([]bn254.G1Affine, N)
-	// Use buffered IO to write parameters efficiently
-	buffSize := int(math.Pow(2, 20))
-	reader := bufio.NewReaderSize(inputPhase1File, buffSize)
-	writer := bufio.NewWriterSize(outputPhase2File, buffSize)
-	defer writer.Flush()
-	dec := bn254.NewDecoder(reader)
-	enc := bn254.NewEncoder(writer)
-
+	
 	// Deserialize Lagrange SRS TauG1
 	if err := dec.Decode(&tauG1); err != nil {
 		return err
@@ -105,7 +103,6 @@ func processEvaluations(r1cs *cs_bn254.R1CS, header1 *phase1.Header, header2 *He
 	}
 
 	// Reset buff
-	buff = nil
 	buff = make([]bn254.G1Affine, nWires)
 	// Accumlate {[B]₁}
 	for i, c := range r1cs.Constraints {
@@ -117,18 +114,16 @@ func processEvaluations(r1cs *cs_bn254.R1CS, header1 *phase1.Header, header2 *He
 	if err := enc.Encode(buff); err != nil {
 		return err
 	}
-	// Release buff
-	buff = nil
-	tauG1 = nil
+
 	tauG2 := make([]bn254.G2Affine, N)
 	buff2 := make([]bn254.G2Affine, nWires)
 
-	// Seek to Lagrange SRS TauG2
-	pos += 3*32*int64(N) + 3*4
-	if _, err := inputPhase1File.Seek(pos, io.SeekStart); err != nil {
+	// Seek to Lagrange SRS TauG2 by skipping AlphaTau and BetaTau
+	pos = 2*32*int64(N) + 2*4
+	if _, err := inputPhase1File.Seek(pos, io.SeekCurrent); err != nil {
 		return err
 	}
-	reader.Reset(inputPhase1File)
+
 
 	// Deserialize Lagrange SRS TauG2
 	if err := dec.Decode(&tauG2); err != nil {
@@ -141,7 +136,7 @@ func processEvaluations(r1cs *cs_bn254.R1CS, header1 *phase1.Header, header2 *He
 		}
 	}
 	// Serialize {[B]₂}
-	if err := enc.Encode(&buff2); err != nil {
+	if err := enc.Encode(buff2); err != nil {
 		return err
 	}
 
@@ -156,7 +151,7 @@ func processL(r1cs *cs_bn254.R1CS, header1 *phase1.Header, header2 *Header, inpu
 		return err
 	}
 	nWires := header2.Witness + header2.Public
-	buffSRS :=make([]bn254.G1Affine, N)
+	buffSRS := make([]bn254.G1Affine, N)
 
 	buffSize := int(math.Pow(2, 20))
 	reader := bufio.NewReaderSize(inputPhase1File, buffSize)
@@ -202,8 +197,8 @@ func processL(r1cs *cs_bn254.R1CS, header1 *phase1.Header, header2 *Header, inpu
 	}
 
 	// Write L
-	for i:=0; i<len(L); i++ {
-		if err:=enc.Encode(&L[i]); err!=nil {
+	for i := 0; i < len(L); i++ {
+		if err := enc.Encode(&L[i]); err != nil {
 			return err
 		}
 	}
@@ -296,4 +291,42 @@ func accumulateG2(r1cs *cs_bn254.R1CS, res *bn254.G2Affine, t constraint.Term, v
 		tmp.ScalarMultiplication(value, &vBi)
 		res.Add(res, &tmp)
 	}
+}
+
+func scale(dec *bn254.Decoder, enc *bn254.Encoder, N int, delta *big.Int) error {
+	// Allocate batch with smallest of (N, batchSize)
+	const batchSize = 1048576 // 2^20
+	var initialSize = int(math.Min(float64(N), float64(batchSize)))
+	buff := make([]bn254.G1Affine, initialSize)
+
+	remaining := N
+	for remaining > 0 {
+		// Read batch
+		readCount := int(math.Min(float64(remaining), float64(batchSize)))
+		fmt.Println("Iterations ", int(remaining/readCount))
+		for i := 0; i < readCount; i++ {
+			if err := dec.Decode(&buff[i]); err != nil {
+				return err
+			}
+		}
+
+		// Process the batch
+		common.Parallelize(readCount, func(start, end int) {
+			for i := start; i < end; i++ {
+				buff[i].ScalarMultiplication(&buff[i], delta)
+			}
+		})
+
+		// Write batch
+		for i := 0; i < readCount; i++ {
+			if err := enc.Encode(&buff[i]); err != nil {
+				return err
+			}
+		}
+
+		// Update remaining
+		remaining -= readCount
+	}
+
+	return nil
 }

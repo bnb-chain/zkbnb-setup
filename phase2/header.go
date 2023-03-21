@@ -3,23 +3,14 @@ package phase2
 import (
 	"encoding/binary"
 	"io"
-
-	"github.com/consensys/gnark-crypto/ecc/bn254"
 )
 
 type Header struct {
-	Witness      uint32
+	Witness       uint32
 	Public        uint32
 	Constraints   uint32
 	Domain        uint32
 	Contributions uint16
-	G1            struct {
-		Alpha bn254.G1Affine
-		Beta  bn254.G1Affine
-	}
-	G2 struct {
-		Beta bn254.G2Affine
-	}
 }
 
 func (p *Header) readFrom(reader io.Reader) error {
@@ -55,22 +46,6 @@ func (p *Header) readFrom(reader io.Reader) error {
 	}
 	p.Contributions = binary.BigEndian.Uint16(buff)
 
-	// G1.Alpha
-	dec := bn254.NewDecoder(reader)
-	if err := dec.Decode(&p.G1.Alpha); err != nil {
-		return err
-	}
-
-	// G1.Beta
-	if err := dec.Decode(&p.G1.Beta); err != nil {
-		return err
-	}
-
-	// G2.Beta
-	if err := dec.Decode(&p.G2.Beta); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -104,22 +79,6 @@ func (p *Header) writeTo(writer io.Writer) error {
 	buff = buff[:2]
 	binary.BigEndian.PutUint16(buff, p.Contributions)
 	if _, err := writer.Write(buff); err != nil {
-		return err
-	}
-
-	// G1.Alpha
-	enc := bn254.NewEncoder(writer)
-	if err := enc.Encode(&p.G1.Alpha); err != nil {
-		return err
-	}
-
-	// G1.Beta
-	if err := enc.Encode(&p.G1.Beta); err != nil {
-		return err
-	}
-
-	// G2.Beta
-	if err := enc.Encode(&p.G2.Beta); err != nil {
 		return err
 	}
 

@@ -51,9 +51,18 @@ func Initialize(inputPhase1Path, inputR1csPath, outputPhase2Path string) error {
 	if err := processEvaluations(&r1cs, header1, header2, inputPhase1File, outputPhase2File); err != nil {
 		return err
 	}
+	
+	// Evaluate Delta and Z
+	fmt.Println("Evaluating Delta and Z")
+	if err := processDeltaAndZ(header1, header2, inputPhase1File, outputPhase2File); err != nil {
+		return err
+	}
+
 
 	return nil
 }
+
+
 
 func Contribute(inputPath, outputPath string) error {
 	return nil

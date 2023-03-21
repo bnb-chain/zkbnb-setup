@@ -57,8 +57,8 @@
     Parameters {
         [δ]₁                    <32 bytes>
         [δ]₂                    <32 bytes>
+        Z                       <32(#Domain-1) bytes>
         L                       <32(#Public + #Internal) bytes>
-        H                       <32(#Domain-1) bytes>
     }
     Contributions
     {

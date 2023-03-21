@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"os"
 
+	"github.com/bnbchain/zkbnb-setup/common"
 	"github.com/bnbchain/zkbnb-setup/phase1"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark/constraint"
@@ -72,7 +73,7 @@ func processHeader(r1cs *cs_bn254.R1CS, inputPhase1File, outputPhase2File *os.Fi
 func processEvaluations(r1cs *cs_bn254.R1CS, header1 *phase1.Header, header2 *Header, inputPhase1File *os.File, outputPhase2File *os.File) error {
 	// Seek to Lagrange SRS TauG1
 	N := int(math.Pow(2, float64(header1.Power)))
-	var pos int64 = 3 + 192*int64(N) +32 + int64((header1.Contributions)*640)
+	var pos int64 = 3 + 192*int64(N) + 32 + int64((header1.Contributions)*640)
 	if _, err := inputPhase1File.Seek(pos, io.SeekStart); err != nil {
 		return err
 	}
@@ -84,7 +85,7 @@ func processEvaluations(r1cs *cs_bn254.R1CS, header1 *phase1.Header, header2 *He
 	dec := bn254.NewDecoder(reader)
 	enc := bn254.NewEncoder(writer)
 
-	// Deserialize LagSRS TauG1
+	// Deserialize Lagrange SRS TauG1
 	if err := dec.Decode(&tauG1); err != nil {
 		return err
 	}
@@ -142,6 +143,53 @@ func processEvaluations(r1cs *cs_bn254.R1CS, header1 *phase1.Header, header2 *He
 		return err
 	}
 
+	return nil
+}
+
+func processDeltaAndZ(header1 *phase1.Header, header2 *Header, inputPhase1File, outputPhase2File *os.File) error {
+	reader := bufio.NewReader(inputPhase1File)
+	writer := bufio.NewWriter(outputPhase2File)
+	defer writer.Flush()
+	dec := bn254.NewDecoder(reader)
+	enc := bn254.NewEncoder(writer)
+
+	// Write [δ]₁ and [δ]₂
+	_, _, g1, g2 := bn254.Generators()
+	if err := enc.Encode(&g1); err != nil {
+		return err
+	}
+	if err := enc.Encode(&g2); err != nil {
+		return err
+	}
+
+	// Seek to TauG1
+	var pos int64 = 3
+	if _, err := inputPhase1File.Seek(pos, io.SeekStart); err != nil {
+		return err
+	}
+	reader.Reset(inputPhase1File)
+	N := int(math.Pow(2, float64(header1.Power)))
+	tauG1 := make([]bn254.G1Affine, 2*N-1)
+	for i := 0; i < len(tauG1); i++ {
+		if err := dec.Decode(&tauG1[i]); err != nil {
+			return err
+		}
+	}
+
+	// Calculate Z
+	n := int(header2.Domain)
+	Z := make([]bn254.G1Affine, n)
+	for i := 0; i < n-1; i++ {
+		Z[i].Sub(&tauG1[i+n], &tauG1[i])
+	}
+	common.BitReverseG1(Z)
+	Z = Z[:n-1]
+	// Write Z
+	for i := 0; i < len(Z); i++ {
+		if err := enc.Encode(&Z[i]); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

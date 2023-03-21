@@ -161,30 +161,6 @@ func difFFTG2(a []bn254.G2Affine, twiddles [][]fr.Element, stage, maxSplits int,
 	}
 }
 
-func BitReverseG1(a []bn254.G1Affine) {
-	n := uint64(len(a))
-	nn := uint64(64 - bits.TrailingZeros64(n))
-
-	for i := uint64(0); i < n; i++ {
-		irev := bits.Reverse64(i) >> nn
-		if irev > i {
-			a[i], a[irev] = a[irev], a[i]
-		}
-	}
-}
-
-func BitReverseG2(a []bn254.G2Affine) {
-	n := uint64(len(a))
-	nn := uint64(64 - bits.TrailingZeros64(n))
-
-	for i := uint64(0); i < n; i++ {
-		irev := bits.Reverse64(i) >> nn
-		if irev > i {
-			a[i], a[irev] = a[irev], a[i]
-		}
-	}
-}
-
 func lagrangifyG1(file *os.File, position int64, N int, domain *fft.Domain) error {
 	// Seek to position
 	if _, err := file.Seek(position, io.SeekStart); err != nil {
@@ -207,7 +183,7 @@ func lagrangifyG1(file *os.File, position int64, N int, domain *fft.Domain) erro
 	numCPU := uint64(runtime.NumCPU())
 	maxSplits := bits.TrailingZeros64(ecc.NextPowerOfTwo(numCPU))
 	difFFTG1(buff, domain.TwiddlesInv, 0, maxSplits, nil)
-	BitReverseG1(buff)
+	common.BitReverseG1(buff)
 	var invBigint big.Int
 	domain.CardinalityInv.BigInt(&invBigint)
 	common.Parallelize(len(buff), func(start, end int) {
@@ -248,7 +224,7 @@ func lagrangifyG2(file *os.File, position int64, N int, domain *fft.Domain) erro
 	numCPU := uint64(runtime.NumCPU())
 	maxSplits := bits.TrailingZeros64(ecc.NextPowerOfTwo(numCPU))
 	difFFTG2(buff, domain.TwiddlesInv, 0, maxSplits, nil)
-	BitReverseG2(buff)
+	common.BitReverseG2(buff)
 	var invBigint big.Int
 	domain.CardinalityInv.BigInt(&invBigint)
 	common.Parallelize(len(buff), func(start, end int) {

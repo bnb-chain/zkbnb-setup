@@ -2,6 +2,7 @@ package phase2
 
 import (
 	"fmt"
+	"io"
 	"math"
 	"os"
 
@@ -33,6 +34,7 @@ func Initialize(inputPhase1Path, inputR1csPath, outputPhase2Path string) error {
 	defer outputPhase2File.Close()
 
 	// Read R1CS
+	fmt.Println("Reading R1CS...")
 	var r1cs cs_bn254.R1CS
 	r1cs.ReadFrom(inputR1csFile)
 
@@ -64,8 +66,11 @@ func Initialize(inputPhase1Path, inputR1csPath, outputPhase2Path string) error {
 	header2.Internal = uint32(r1cs.GetNbInternalVariables())
 	header2.Public = uint32(r1cs.GetNbPublicVariables())
 
-	// Read [α]₁ , [β]₁ , [β]₂  from phase1 last contribution
-	inputPhase1File.Seek(-phase1.ContributionSize, 2)
+	// Read [α]₁ , [β]₁ , [β]₂  from phase1 last contribution (Check Phase 1 file format for reference)
+	var pos int64 = 35 + 192*int64(N) + int64((header1.Contributions-1)*640)
+	if _, err := inputPhase1File.Seek(pos, io.SeekStart); err != nil {
+		return err
+	}
 	var c1 phase1.Contribution
 	if _, err := c1.ReadFrom(inputPhase1File); err != nil {
 		return err
@@ -79,6 +84,9 @@ func Initialize(inputPhase1Path, inputR1csPath, outputPhase2Path string) error {
 	if err := header2.writeTo(outputPhase2File); err != nil {
 		return err
 	}
+	fmt.Println("Header initialized successfully")
+
+	// Evaluate constraints
 
 	return nil
 }

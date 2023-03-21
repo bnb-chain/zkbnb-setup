@@ -81,9 +81,9 @@ func TestSetup(t *testing.T) {
 	}
 
 	// Phase 2 initialization
-	// err = phase2.Initialize("4.ph1", "circuit.r1cs", "0.ph2")
-	// if err != nil {
-	// 	t.Error(err)
-	// }
+	err = phase2.Initialize("4.ph1", "circuit.r1cs", "0.ph2")
+	if err != nil {
+		t.Error(err)
+	}
 
 }

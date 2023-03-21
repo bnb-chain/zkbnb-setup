@@ -79,8 +79,10 @@ func processEvaluations(r1cs *cs_bn254.R1CS, header1 *phase1.Header, header2 *He
 	}
 	nWires := header2.Witness + header2.Public
 	tauG1 := make([]bn254.G1Affine, N)
-	reader := bufio.NewReader(inputPhase1File)
-	writer := bufio.NewWriter(outputPhase2File)
+	// Use buffered IO to write parameters efficiently
+	buffSize := int(math.Pow(2, 20))
+	reader := bufio.NewReaderSize(inputPhase1File, buffSize)
+	writer := bufio.NewWriterSize(outputPhase2File, buffSize)
 	defer writer.Flush()
 	dec := bn254.NewDecoder(reader)
 	enc := bn254.NewEncoder(writer)
@@ -146,9 +148,72 @@ func processEvaluations(r1cs *cs_bn254.R1CS, header1 *phase1.Header, header2 *He
 	return nil
 }
 
+func processL(r1cs *cs_bn254.R1CS, header1 *phase1.Header, header2 *Header, inputPhase1File *os.File, outputPhase2File *os.File) error {
+	N := int(math.Pow(2, float64(header1.Power)))
+	// Seek Lagrange SRS TauG1
+	var pos int64 = 3 + 192*int64(N) + 32 + int64((header1.Contributions)*640)
+	if _, err := inputPhase1File.Seek(pos, io.SeekStart); err != nil {
+		return err
+	}
+	nWires := header2.Witness + header2.Public
+	buffSRS :=make([]bn254.G1Affine, N)
+
+	buffSize := int(math.Pow(2, 20))
+	reader := bufio.NewReaderSize(inputPhase1File, buffSize)
+	writer := bufio.NewWriterSize(outputPhase2File, buffSize)
+	defer writer.Flush()
+	dec := bn254.NewDecoder(reader)
+	enc := bn254.NewEncoder(writer)
+
+	// L =  Output(TauG1) + Right(AlphaTauG1) + Left(BetaTauG1)
+	L := make([]bn254.G1Affine, nWires)
+
+	// Deserialize Lagrange SRS TauG1
+	if err := dec.Decode(&buffSRS); err != nil {
+		return err
+	}
+	for i, c := range r1cs.Constraints {
+		// Output(Tau)
+		for _, t := range c.O {
+			accumulateG1(r1cs, &L[t.WireID()], t, &buffSRS[i])
+		}
+	}
+
+	// Deserialize Lagrange SRS AlphaTauG1
+	if err := dec.Decode(&buffSRS); err != nil {
+		return err
+	}
+	for i, c := range r1cs.Constraints {
+		// Right(AlphaTauG1)
+		for _, t := range c.R {
+			accumulateG1(r1cs, &L[t.WireID()], t, &buffSRS[i])
+		}
+	}
+
+	// Deserialize Lagrange SRS BetaTauG1
+	if err := dec.Decode(&buffSRS); err != nil {
+		return err
+	}
+	for i, c := range r1cs.Constraints {
+		// Left(BetaTauG1)
+		for _, t := range c.L {
+			accumulateG1(r1cs, &L[t.WireID()], t, &buffSRS[i])
+		}
+	}
+
+	// Write L
+	for i:=0; i<len(L); i++ {
+		if err:=enc.Encode(&L[i]); err!=nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func processDeltaAndZ(header1 *phase1.Header, header2 *Header, inputPhase1File, outputPhase2File *os.File) error {
-	reader := bufio.NewReader(inputPhase1File)
-	writer := bufio.NewWriter(outputPhase2File)
+	buffSize := int(math.Pow(2, 20))
+	reader := bufio.NewReaderSize(inputPhase1File, buffSize)
+	writer := bufio.NewWriterSize(outputPhase2File, buffSize)
 	defer writer.Flush()
 	dec := bn254.NewDecoder(reader)
 	enc := bn254.NewEncoder(writer)

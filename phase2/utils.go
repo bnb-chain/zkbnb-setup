@@ -43,9 +43,9 @@ func processHeader(r1cs *cs_bn254.R1CS, inputPhase1File, outputPhase2File *os.Fi
 		// Shouldn't happen
 		panic("the power is beyond 28")
 	}
-	// Initialize Domain, #Internal and #Public
+	// Initialize Domain, #Witness and #Public
 	header2.Domain = uint32(nextPowerofTwo(r1cs.GetNbConstraints()))
-	header2.Internal = uint32(r1cs.GetNbInternalVariables())
+	header2.Witness = uint32(r1cs.GetNbInternalVariables()+r1cs.GetNbSecretVariables())
 	header2.Public = uint32(r1cs.GetNbPublicVariables())
 
 	// Read [α]₁ , [β]₁ , [β]₂  from phase1 last contribution (Check Phase 1 file format for reference)
@@ -77,7 +77,7 @@ func processEvaluations(r1cs *cs_bn254.R1CS, header1 *phase1.Header, header2 *He
 	if _, err := inputPhase1File.Seek(pos, io.SeekStart); err != nil {
 		return err
 	}
-	nWires := header2.Internal + header2.Public
+	nWires := header2.Witness + header2.Public
 	tauG1 := make([]bn254.G1Affine, N)
 	reader := bufio.NewReader(inputPhase1File)
 	writer := bufio.NewWriter(outputPhase2File)

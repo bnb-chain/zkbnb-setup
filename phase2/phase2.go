@@ -44,7 +44,7 @@ func Initialize(inputPhase1Path, inputR1csPath, outputPhase2Path string) error {
 	if header1, header2, err = processHeader(&r1cs, inputPhase1File, outputPhase2File); err != nil {
 		return err
 	}
-	fmt.Printf("Circuit Info, nConstraints:=%d, nInternal:=%d, nPublic:=%d\n", header2.Constraints, header2.Internal, header2.Public)
+	fmt.Printf("Circuit Info, nConstraints:=%d, nInternal:=%d, nPublic:=%d\n", header2.Constraints, header2.Witness, header2.Public)
 
 	// Evaluate constraints
 	fmt.Println("Evaluating [A]₁, [B]₁, [B]₂")

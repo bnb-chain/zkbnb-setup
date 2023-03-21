@@ -8,7 +8,7 @@ import (
 )
 
 type Header struct {
-	Internal      uint32
+	Witness      uint32
 	Public        uint32
 	Constraints   uint32
 	Domain        uint32
@@ -23,12 +23,12 @@ type Header struct {
 }
 
 func (p *Header) readFrom(reader io.Reader) error {
-	// Internal
+	// Witness
 	buff := make([]byte, 4)
 	if _, err := reader.Read(buff); err != nil {
 		return err
 	}
-	p.Internal = binary.BigEndian.Uint32(buff)
+	p.Witness = binary.BigEndian.Uint32(buff)
 
 	// Public
 	if _, err := reader.Read(buff); err != nil {
@@ -75,9 +75,9 @@ func (p *Header) readFrom(reader io.Reader) error {
 }
 
 func (p *Header) writeTo(writer io.Writer) error {
-	// Internal
+	// Witness
 	buff := make([]byte, 4)
-	binary.BigEndian.PutUint32(buff, p.Internal)
+	binary.BigEndian.PutUint32(buff, p.Witness)
 	if _, err := writer.Write(buff); err != nil {
 		return err
 	}

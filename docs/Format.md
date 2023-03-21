@@ -1,20 +1,20 @@
 # Phase 1 File Format
-    Header 
+    Header                      <3 bytes>
     {
         Power                   <1 byte>
         #Contributions          <2 bytes>
     }
-    Parameters
-    {
-        {[τ]₁}                  <32(2²ᵖ⁻¹) bytes>
+    Parameters                  <192<2ᵖ>+32 bytes>
+    {                           
+        {[τ]₁}                  <32(2²ᵖ-1) bytes>
         {[ατ]₁}                 <32(2ᴾ) bytes>
         {[βτ]₁}                 <32(2ᴾ) bytes>
         {[τ]₂}                  <64(2ᴾ) bytes>
         [β]₂                    <64 bytes>
     }
-    Contributions
+    Contributions               <640(#Contributions) bytes>
     {
-        {
+        {                       <640 bytes>
             [τ]₁                <32 bytes>
             [α]₁                <32 bytes>
             [β]₁                <32 bytes>
@@ -29,10 +29,10 @@
     }
     LagrangeSRS
     {
-        {[τ]₁}                  <32(2ᵖ) bytes>
-        {[ατ]₁}                 <32(2ᴾ) bytes>
-        {[βτ]₁}                 <32(2ᴾ) bytes>
-        {[τ]₂}                  <64(2ᴾ) bytes>
+        {[τ]₁}                  <32(2ᵖ)+4 bytes>
+        {[ατ]₁}                 <32(2ᴾ)+4 bytes>
+        {[βτ]₁}                 <32(2ᴾ)+4 bytes>
+        {[τ]₂}                  <64(2ᴾ)+4 bytes>
     }
 
 
@@ -40,7 +40,6 @@
 # Phase 2 File Format
     Header 
     {
-        R1CSHash                <32 bytes>
         #Internal               <4  bytes>
         #Public                 <4  bytes>
         #Constraints            <4  bytes>
@@ -51,15 +50,14 @@
         [β]₂                    <64 bytes>
     }
     Evaluation {
-        [A]₁                    <32(#Internal+#Public) bytes>
-        [B]₁                    <32(#Internal+#Public) bytes>
-        [VK]₁                   <32(#Public) bytes>
-        [B]₂                    <64(#Internal+#Public) bytes>
+        [A]₁                    <32(#Internal+#Public)+4 bytes>
+        [B]₁                    <32(#Internal+#Public)+4 bytes>
+        [B]₂                    <64(#Internal+#Public)+4 bytes>
     }
     Parameters {
         [δ]₁                    <32 bytes>
         [δ]₂                    <32 bytes>
-        L                       <32(#Internal) bytes>
+        L                       <32(#Public + #Internal) bytes>
         H                       <32(#Domain-1) bytes>
     }
     Contributions
@@ -73,3 +71,6 @@
         }
         ...
     }
+
+
+**Note** only the internal part of L is updated in contributions

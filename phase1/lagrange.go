@@ -219,12 +219,10 @@ func lagrangifyG1(file *os.File, position int64, N int, domain *fft.Domain) erro
 	if _, err := file.Seek(0, io.SeekEnd); err != nil {
 		return err
 	}
-	for i := 0; i < N; i++ {
-		if err := enc.Encode(&buff[i]); err != nil {
-			return err
-		}
+	// Serialize it
+	if err := enc.Encode(buff); err != nil {
+		return err
 	}
-
 	return nil
 }
 
@@ -262,10 +260,10 @@ func lagrangifyG2(file *os.File, position int64, N int, domain *fft.Domain) erro
 	if _, err := file.Seek(0, io.SeekEnd); err != nil {
 		return err
 	}
-	for i := 0; i < N; i++ {
-		if err := enc.Encode(&buff[i]); err != nil {
-			return err
-		}
+
+	// Serialize it
+	if err := enc.Encode(buff); err != nil {
+		return err
 	}
 
 	return nil

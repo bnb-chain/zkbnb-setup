@@ -8,7 +8,6 @@ import (
 )
 
 type Header struct {
-	R1CSHash      []byte
 	Internal      uint32
 	Public        uint32
 	Constraints   uint32
@@ -24,12 +23,6 @@ type Header struct {
 }
 
 func (p *Header) readFrom(reader io.Reader) error {
-	// R1CS
-	p.R1CSHash = make([]byte, 32)
-	if _, err := reader.Read(p.R1CSHash); err != nil {
-		return err
-	}
-
 	// Internal
 	buff := make([]byte, 4)
 	if _, err := reader.Read(buff); err != nil {
@@ -82,11 +75,6 @@ func (p *Header) readFrom(reader io.Reader) error {
 }
 
 func (p *Header) writeTo(writer io.Writer) error {
-	// R1CS
-	if _, err := writer.Write(p.R1CSHash); err != nil {
-		return err
-	}
-
 	// Internal
 	buff := make([]byte, 4)
 	binary.BigEndian.PutUint32(buff, p.Internal)

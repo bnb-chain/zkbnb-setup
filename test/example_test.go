@@ -4,9 +4,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/bnbchain/zkbnb-setup/keys"
 	"github.com/bnbchain/zkbnb-setup/phase1"
 	"github.com/bnbchain/zkbnb-setup/phase2"
+	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
+	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
 	"github.com/consensys/gnark/std/hash/mimc"
@@ -49,7 +52,7 @@ func TestSetup(t *testing.T) {
 	defer writer.Close()
 	ccs.WriteTo(writer)
 
-	var power byte = 10
+	var power byte = 9
 
 	// Initialize to Phase 1
 	if err := phase1.Initialize(power, "0.ph1"); err != nil {
@@ -97,4 +100,7 @@ func TestSetup(t *testing.T) {
 		t.Error(err)
 	}
 
+	if err := keys.ExtractKeys("3.ph2", "evals.ev"); err != nil {
+		t.Error(err)
+	}
 }

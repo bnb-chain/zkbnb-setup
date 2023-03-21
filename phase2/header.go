@@ -13,7 +13,7 @@ type Header struct {
 	Contributions uint16
 }
 
-func (p *Header) readFrom(reader io.Reader) error {
+func (p *Header) ReadFrom(reader io.Reader) error {
 	// Witness
 	buff := make([]byte, 4)
 	if _, err := reader.Read(buff); err != nil {

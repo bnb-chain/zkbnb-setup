@@ -99,7 +99,7 @@ func Contribute(inputPath, outputPath string) error {
 
 	// Read/Write header with extra contribution
 	var header Header
-	if err := header.readFrom(inputFile); err != nil {
+	if err := header.ReadFrom(inputFile); err != nil {
 		return err
 	}
 	fmt.Printf("Current #Contributions := %d\n", header.Contributions)

@@ -2,6 +2,7 @@ package keys
 
 import (
 	"bufio"
+	"fmt"
 	"math"
 	"os"
 
@@ -180,6 +181,8 @@ func ExtractKeys(phase2Path, evalsPath string) error {
 	if _, err := vk.WriteTo(vkWriter, false); err != nil {
 		return err
 	}
+
+	fmt.Println("Keys pk and vk have been extracted successfully")
 	return nil
 }
 

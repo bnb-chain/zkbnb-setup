@@ -234,30 +234,30 @@ func verifyContribution(current, prev Contribution) error {
 	betaSP := common.GenSP(current.PublicKeys.Beta.S, current.PublicKeys.Beta.SX, prev.Hash[:], 3)
 
 	// Check for knowledge of toxic parameters
-	if !sameRatio(current.PublicKeys.Tau.S, current.PublicKeys.Tau.SX, current.PublicKeys.Tau.SPX, tauSP) {
+	if !common.SameRatio(current.PublicKeys.Tau.S, current.PublicKeys.Tau.SX, current.PublicKeys.Tau.SPX, tauSP) {
 		return errors.New("couldn't verify knowledge of Tau")
 	}
-	if !sameRatio(current.PublicKeys.Alpha.S, current.PublicKeys.Alpha.SX, current.PublicKeys.Alpha.SPX, alphaSP) {
+	if !common.SameRatio(current.PublicKeys.Alpha.S, current.PublicKeys.Alpha.SX, current.PublicKeys.Alpha.SPX, alphaSP) {
 		return errors.New("couldn't verify knowledge of Alpha")
 	}
-	if !sameRatio(current.PublicKeys.Beta.S, current.PublicKeys.Beta.SX, current.PublicKeys.Beta.SPX, betaSP) {
+	if !common.SameRatio(current.PublicKeys.Beta.S, current.PublicKeys.Beta.SX, current.PublicKeys.Beta.SPX, betaSP) {
 		return errors.New("couldn't verify knowledge of Beta")
 	}
 
 	// Check for valid updates using previous parameters
-	if !sameRatio(current.G1.Tau, prev.G1.Tau, tauSP, current.PublicKeys.Tau.SPX) {
+	if !common.SameRatio(current.G1.Tau, prev.G1.Tau, tauSP, current.PublicKeys.Tau.SPX) {
 		return errors.New("couldn't verify that TauG1 is based on previous contribution")
 	}
-	if !sameRatio(current.G1.Alpha, prev.G1.Alpha, alphaSP, current.PublicKeys.Alpha.SPX) {
+	if !common.SameRatio(current.G1.Alpha, prev.G1.Alpha, alphaSP, current.PublicKeys.Alpha.SPX) {
 		return errors.New("couldn't verify that AlphaTauG1 is based on previous contribution")
 	}
-	if !sameRatio(current.G1.Beta, prev.G1.Beta, betaSP, current.PublicKeys.Beta.SPX) {
+	if !common.SameRatio(current.G1.Beta, prev.G1.Beta, betaSP, current.PublicKeys.Beta.SPX) {
 		return errors.New("couldn't verify that BetaTauG1 is based on previous contribution")
 	}
-	if !sameRatio(current.PublicKeys.Tau.S, current.PublicKeys.Tau.SX, current.G2.Tau, prev.G2.Tau) {
+	if !common.SameRatio(current.PublicKeys.Tau.S, current.PublicKeys.Tau.SX, current.G2.Tau, prev.G2.Tau) {
 		return errors.New("couldn't verify that TauG2 is based on previous contribution")
 	}
-	if !sameRatio(current.PublicKeys.Beta.S, current.PublicKeys.Beta.SX, current.G2.Beta, prev.G2.Beta) {
+	if !common.SameRatio(current.PublicKeys.Beta.S, current.PublicKeys.Beta.SX, current.G2.Beta, prev.G2.Beta) {
 		return errors.New("couldn't verify that BetaG2 is based on previous contribution")
 	}
 
@@ -268,17 +268,4 @@ func verifyContribution(current, prev Contribution) error {
 	}
 
 	return nil
-}
-
-// Check e(a₁, a₂) = e(b₁, b₂)
-func sameRatio(a1, b1 bn254.G1Affine, a2, b2 bn254.G2Affine) bool {
-	var na2 bn254.G2Affine
-	na2.Neg(&a2)
-	res, err := bn254.PairingCheck(
-		[]bn254.G1Affine{a1, b1},
-		[]bn254.G2Affine{na2, b2})
-	if err != nil {
-		panic(err)
-	}
-	return res
 }

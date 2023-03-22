@@ -2,6 +2,8 @@ package phase2
 
 import (
 	"bufio"
+	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -61,7 +63,7 @@ func processEvaluations(r1cs *cs_bn254.R1CS, header1 *phase1.Header, header2 *He
 	N := int(math.Pow(2, float64(header1.Power)))
 	pos := 35 + 192*int64(N) + int64((header1.Contributions-1)*640)
 	if _, err := inputPhase1File.Seek(pos, io.SeekStart); err != nil {
-		return  err
+		return err
 	}
 	var c1 phase1.Contribution
 	if _, err := c1.ReadFrom(inputPhase1File); err != nil {
@@ -72,19 +74,19 @@ func processEvaluations(r1cs *cs_bn254.R1CS, header1 *phase1.Header, header2 *He
 	enc := bn254.NewEncoder(outputEvalsFile)
 
 	// Write [α]₁ , [β]₁ , [β]₂
-	if err := enc.Encode(&c1.G1.Alpha); err!= nil {
+	if err := enc.Encode(&c1.G1.Alpha); err != nil {
 		return err
 	}
-	if err := enc.Encode(&c1.G1.Beta); err!= nil {
+	if err := enc.Encode(&c1.G1.Beta); err != nil {
 		return err
 	}
-	if err := enc.Encode(&c1.G2.Beta); err!= nil {
+	if err := enc.Encode(&c1.G2.Beta); err != nil {
 		return err
 	}
-	
+
 	nWires := header2.Witness + header2.Public
 	tauG1 := make([]bn254.G1Affine, N)
-	
+
 	// Deserialize Lagrange SRS TauG1
 	if err := dec.Decode(&tauG1); err != nil {
 		return err
@@ -123,7 +125,6 @@ func processEvaluations(r1cs *cs_bn254.R1CS, header1 *phase1.Header, header2 *He
 	if _, err := inputPhase1File.Seek(pos, io.SeekCurrent); err != nil {
 		return err
 	}
-
 
 	// Deserialize Lagrange SRS TauG2
 	if err := dec.Decode(&tauG2); err != nil {
@@ -326,6 +327,28 @@ func scale(dec *bn254.Decoder, enc *bn254.Encoder, N int, delta *big.Int) error 
 
 		// Update remaining
 		remaining -= readCount
+	}
+
+	return nil
+}
+
+func verifyContribution(c *Contribution, prevDelta bn254.G1Affine, prevHash []byte) error {
+	// Compute SP for δ
+	deltaSP := common.GenSP(c.PublicKey.S, c.PublicKey.SX, prevHash, 1)
+
+	// Check for knowledge of δ
+	if !common.SameRatio(c.PublicKey.S, c.PublicKey.SX, c.PublicKey.SPX, deltaSP) {
+		return errors.New("couldn't verify knowledge of Delta")
+	}
+
+	// Check for valid update δ using previous parameters
+	if !common.SameRatio(c.Delta, prevDelta, deltaSP, c.PublicKey.SPX) {
+		return errors.New("couldn't verify that [δ]₁ is based on previous contribution")
+	}
+	// Verify contribution hash
+	b := computeHash(c)
+	if !bytes.Equal(c.Hash, b) {
+		return fmt.Errorf("contribution hash is invalid")
 	}
 
 	return nil

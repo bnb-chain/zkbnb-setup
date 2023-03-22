@@ -33,7 +33,7 @@ func Initialize(power byte, outputPath string) error {
 	header.writeTo(outputFile)
 
 	// Use buffered IO to write parameters efficiently
-	buffSize := int(math.Pow(2, 30))
+	buffSize := int(math.Pow(2, 20))
 	writer := bufio.NewWriterSize(outputFile, buffSize)
 	defer writer.Flush()
 
@@ -109,7 +109,7 @@ func Contribute(inputPath, outputPath string) error {
 	}
 
 	// Use buffered IO to write parameters efficiently
-	buffSize := int(math.Pow(2, 30))
+	buffSize := int(math.Pow(2, 20))
 	reader := bufio.NewReaderSize(inputFile, buffSize)
 	writer := bufio.NewWriterSize(outputFile, buffSize)
 	defer writer.Flush()
@@ -223,7 +223,7 @@ func Verify(inputPath string) error {
 	N := int(math.Pow(2, float64(header.Power)))
 
 	// Use buffered IO to write parameters efficiently
-	buffSize := int(math.Pow(2, 30))
+	buffSize := int(math.Pow(2, 20))
 	reader := bufio.NewReaderSize(inputFile, buffSize)
 	dec := bn254.NewDecoder(reader)
 
@@ -273,25 +273,25 @@ func Verify(inputPath string) error {
 	_, _, g1, g2 := bn254.Generators()
 	// Read and verify TauG1
 	fmt.Println("Verifying powers of TauG1")
-	if !sameRatio(tau1L1, tau1L2, current.G2.Tau, g2) {
+	if !common.SameRatio(tau1L1, tau1L2, current.G2.Tau, g2) {
 		return errors.New("failed pairing check")
 	}
 
 	// Read and verify AlphaTauG1
 	fmt.Println("Verifying powers of AlphaTauG1")
-	if !sameRatio(alphaTau1L1, alphaTau1L2, current.G2.Tau, g2) {
+	if !common.SameRatio(alphaTau1L1, alphaTau1L2, current.G2.Tau, g2) {
 		return errors.New("failed pairing check")
 	}
 
 	// Read and verify BetaTauG1
 	fmt.Println("Verifying powers of BetaTauG1")
-	if !sameRatio(betaTau1L1, betaTau1L2, current.G2.Tau, g2) {
+	if !common.SameRatio(betaTau1L1, betaTau1L2, current.G2.Tau, g2) {
 		return errors.New("failed pairing check")
 	}
 
 	// Read and verify TauG2
 	fmt.Println("Verifying powers of TauG2")
-	if !sameRatio(g1, current.G1.Tau, tau2L1, tau2L2) {
+	if !common.SameRatio(g1, current.G1.Tau, tau2L1, tau2L2) {
 		return errors.New("failed pairing check")
 	}
 
@@ -331,7 +331,7 @@ func Finalize(inputPhase1Path string) error {
 	}
 	// Lagrangify AlphaTauG1
 	// Seek to the first AlphaTauG1
-	pos += 32*(2*int64(N)-1)
+	pos += 32 * (2*int64(N) - 1)
 	fmt.Println("Lagrangifying AlphaTauG1")
 	if err := lagrangifyG1(inputPhase1File, pos, N, domain); err != nil {
 		return err

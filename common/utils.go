@@ -29,3 +29,16 @@ func BitReverseG2(a []bn254.G2Affine) {
 		}
 	}
 }
+
+// Check e(a₁, a₂) = e(b₁, b₂)
+func SameRatio(a1, b1 bn254.G1Affine, a2, b2 bn254.G2Affine) bool {
+	var na2 bn254.G2Affine
+	na2.Neg(&a2)
+	res, err := bn254.PairingCheck(
+		[]bn254.G1Affine{a1, b1},
+		[]bn254.G2Affine{na2, b2})
+	if err != nil {
+		panic(err)
+	}
+	return res
+}

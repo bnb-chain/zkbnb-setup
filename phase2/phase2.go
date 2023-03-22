@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"math"
 	"math/big"
 	"os"
@@ -192,7 +193,7 @@ func Contribute(inputPath, outputPath string) error {
 	var contribution Contribution
 	contribution.Delta.Set(&delta1)
 	contribution.PublicKey = common.GenPublicKey(delta, prevHash, 1)
-	contribution.Hash = computeHash(&c)
+	contribution.Hash = computeHash(&contribution)
 
 	// Write the contribution
 	contribution.writeTo(writer)
@@ -204,5 +205,77 @@ func Contribute(inputPath, outputPath string) error {
 }
 
 func Verify(inputPath string) error {
+	// Input file
+	inputFile, err := os.Open(inputPath)
+	if err != nil {
+		return err
+	}
+	defer inputFile.Close()
+
+	// Read header
+	var header Header
+	if err := header.ReadFrom(inputFile); err != nil {
+		return err
+	}
+	if header.Contributions == 0 {
+		return fmt.Errorf("there are no contributions to verify")
+	}
+	fmt.Printf("#Contributions := %d\n", header.Contributions)
+
+	// Seek to contributions
+	pos := 18 + 96 + int64(header.Domain-1)*32 + int64(header.Witness+header.Public)*32
+	if _, err := inputFile.Seek(pos, io.SeekStart); err != nil {
+		return err
+	}
+
+	// Use buffered IO to write parameters efficiently
+	buffSize := int(math.Pow(2, 20))
+	reader := bufio.NewReaderSize(inputFile, buffSize)
+
+	_, _, g1, g2 := bn254.Generators()
+	var prevDelta = g1
+	var prevHash []byte = nil
+	var c Contribution
+	for i := 0; i < int(header.Contributions); i++ {
+		if _, err := c.readFrom(reader); err != nil {
+			return err
+		}
+		fmt.Printf("Verifying contribution %d with Hash := %s\n", i+1, hex.EncodeToString(c.Hash))
+		if err := verifyContribution(&c, prevDelta, prevHash); err != nil {
+			return err
+		}
+		prevDelta = c.Delta
+		prevHash = c.Hash
+	}
+
+	// Seek to Parameters
+	pos = 18
+	if _, err := inputFile.Seek(pos, io.SeekStart); err != nil {
+		return err
+	}
+	reader.Reset(inputFile)
+	dec := bn254.NewDecoder(reader)
+
+	// Verify last contribution has the same delta in parameters
+	var d1 bn254.G1Affine
+	if err := dec.Decode(&d1); err != nil {
+		return err
+	}
+	if !d1.Equal(&c.Delta) {
+		return fmt.Errorf("last contribution delta isn't the same as in parameters")
+	}
+
+	var d2 bn254.G2Affine
+	if err := dec.Decode(&d2); err != nil {
+		return err
+	}
+
+	// Check δ₁ and δ₂
+	if !common.SameRatio(g1, c.Delta, d2, g2) {
+		return fmt.Errorf("deltaG1 and deltaG2 aren't consistent")
+	}
+
+	fmt.Println("Contributions verification has been successful")
 	return nil
+
 }

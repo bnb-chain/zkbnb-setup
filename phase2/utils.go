@@ -250,11 +250,6 @@ func processEvaluations2(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, batchSi
 
 		i = iNew
 	}
-	// for i, c := range r1cs.Constraints {
-	// 	for _, t := range c.L {
-	// 		accumulateG1(r1cs, &buff[t.WireID()], t, &tauG1[i])
-	// 	}
-	// }
 	// Serialize {[A]₁}
 	if err := enc.Encode(buff); err != nil {
 		return err
@@ -290,11 +285,6 @@ func processEvaluations2(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, batchSi
 
 		i = iNew
 	}
-	// for i, c := range r1cs.Constraints {
-	// 	for _, t := range c.R {
-	// 		accumulateG1(r1cs, &buff[t.WireID()], t, &tauG1[i])
-	// 	}
-	// }
 	// Serialize {[B]₁}
 	if err := enc.Encode(buff); err != nil {
 		return err
@@ -341,11 +331,6 @@ func processEvaluations2(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, batchSi
 
 		i = iNew
 	}
-	// for i, c := range r1cs.Constraints {
-	// 	for _, t := range c.R {
-	// 		accumulateG2(r1cs, &buff2[t.WireID()], t, &tauG2[i])
-	// 	}
-	// }
 	// Serialize {[B]₂}
 	if err := enc.Encode(buff2); err != nil {
 		return err
@@ -487,20 +472,6 @@ func processL2(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, batchSize int, he
 
 		i = iNew
 	}
-	// for i, c := range r1cs.Constraints {
-	// 	// Output(Tau)
-	// 	for _, t := range c.O {
-	// 		accumulateG1(r1cs, &L[t.WireID()], t, &TauG1[i])
-	// 	}
-	// 	// Right(AlphaTauG1)
-	// 	for _, t := range c.R {
-	// 		accumulateG1(r1cs, &L[t.WireID()], t, &AlphaTauG1[i])
-	// 	}
-	// 	// Left(BetaTauG1)
-	// 	for _, t := range c.L {
-	// 		accumulateG1(r1cs, &L[t.WireID()], t, &BetaTauG1[i])
-	// 	}
-	// }
 
 	// Write L
 	for i := 0; i < len(L); i++ {

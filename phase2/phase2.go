@@ -91,13 +91,6 @@ func InitializeFromPartedR1CS(inputPhase1Path, inputR1csSession, outputPhase2Pat
 	}
 	defer inputPhase1File.Close()
 
-	// // Input R1CS
-	// inputR1csFile, err := os.Open(inputR1csPath)
-	// if err != nil {
-	// 	return err
-	// }
-	// defer inputR1csFile.Close()
-
 	// Output Phase 2
 	outputPhase2File, err := os.Create(outputPhase2Path)
 	if err != nil {
@@ -126,9 +119,6 @@ func InitializeFromPartedR1CS(inputPhase1Path, inputR1csSession, outputPhase2Pat
 			return err
 		}
 	}
-	// if _, err := r1cs.ReadFrom(inputR1csFile); err != nil {
-	// 	return err
-	// }
 
 	// Process Header
 	fmt.Println("Processing the header")

@@ -272,13 +272,20 @@ func Contribute(inputPath, outputPath string) error {
 	return nil
 }
 
-func Verify(inputPath string) error {
+func Verify(inputPath, originPath string) error {
 	// Input file
 	inputFile, err := os.Open(inputPath)
 	if err != nil {
 		return err
 	}
 	defer inputFile.Close()
+
+	// Origin file from Phase2.Initialize
+	originFile, err := os.Open(originPath)
+	if err != nil {
+		return err
+	}
+	defer originFile.Close()
 
 	// Read header
 	var header Header
@@ -298,14 +305,14 @@ func Verify(inputPath string) error {
 
 	// Use buffered IO to write parameters efficiently
 	buffSize := int(math.Pow(2, 20))
-	reader := bufio.NewReaderSize(inputFile, buffSize)
+	inputReader := bufio.NewReaderSize(inputFile, buffSize)
 
 	_, _, g1, g2 := bn254.Generators()
 	var prevDelta = g1
 	var prevHash []byte = nil
 	var c Contribution
 	for i := 0; i < int(header.Contributions); i++ {
-		if _, err := c.readFrom(reader); err != nil {
+		if _, err := c.readFrom(inputReader); err != nil {
 			return err
 		}
 		fmt.Printf("Verifying contribution %d with Hash := %s\n", i+1, hex.EncodeToString(c.Hash))
@@ -321,12 +328,14 @@ func Verify(inputPath string) error {
 	if _, err := inputFile.Seek(pos, io.SeekStart); err != nil {
 		return err
 	}
-	reader.Reset(inputFile)
-	dec := bn254.NewDecoder(reader)
 
+	inputReader.Reset(inputFile)
+	inputDecoder := bn254.NewDecoder(inputReader)
+
+	fmt.Println("Verifying DeltaG1 and DeltaG2")
 	// Verify last contribution has the same delta in parameters
 	var d1 bn254.G1Affine
-	if err := dec.Decode(&d1); err != nil {
+	if err := inputDecoder.Decode(&d1); err != nil {
 		return err
 	}
 	if !d1.Equal(&c.Delta) {
@@ -334,16 +343,40 @@ func Verify(inputPath string) error {
 	}
 
 	var d2 bn254.G2Affine
-	if err := dec.Decode(&d2); err != nil {
+	if err := inputDecoder.Decode(&d2); err != nil {
 		return err
 	}
 
-	// Check δ₁ and δ₂
+	// Check δ₁ and δ₂ are consistent
 	if !common.SameRatio(g1, c.Delta, d2, g2) {
 		return fmt.Errorf("deltaG1 and deltaG2 aren't consistent")
 	}
 
+	// Seek to Z
+	pos += 32 + 64
+	if _, err := originFile.Seek(pos, io.SeekStart); err != nil {
+		return err
+	}
+	originReader := bufio.NewReaderSize(originFile, buffSize)
+	originDecoder := bn254.NewDecoder(originReader)
+
+	fmt.Println("Verifying update of Z")
+	// Check Z is updated correctly from origin to the latest state
+	if err := verifyParameter(&d2, &g2, inputDecoder, originDecoder, int(header.Domain-1), "Z"); err != nil {
+		return err
+	}
+
+	// Check equal public part of L
+	fmt.Println("Verifying equality of public part of L")
+	if err := verifyEquality(inputDecoder, originDecoder, int(header.Public)); err != nil {
+		return err
+	}
+	fmt.Println("Verifying update of witness part of L")
+	// Check L is updated correctly from origin to the latest state
+	if err := verifyParameter(&d2, &g2, inputDecoder, originDecoder, int(header.Witness), "L"); err != nil {
+		return err
+	}
+
 	fmt.Println("Contributions verification has been successful")
 	return nil
-
 }

@@ -102,16 +102,16 @@ func TestSetup(t *testing.T) {
 		t.Error(err)
 	}
 
-	// if err := phase2.Contribute("1.ph2", "2.ph2"); err != nil {
-	// 	t.Error(err)
-	// }
+	if err := phase2.Contribute("1.ph2", "2.ph2"); err != nil {
+		t.Error(err)
+	}
 
-	// if err := phase2.Contribute("2.ph2", "3.ph2"); err != nil {
-	// 	t.Error(err)
-	// }
+	if err := phase2.Contribute("2.ph2", "3.ph2"); err != nil {
+		t.Error(err)
+	}
 
 	// Verify Phase 2 contributions
-	if err := phase2.Verify("1.ph2"); err != nil {
+	if err := phase2.Verify("3.ph2", "0.ph2"); err != nil {
 		t.Error(err)
 	}
 

@@ -13,7 +13,9 @@ import (
 
 	"github.com/bnbchain/zkbnb-setup/common"
 	"github.com/bnbchain/zkbnb-setup/phase1"
+	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
+	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	"github.com/consensys/gnark/constraint"
 	cs_bn254 "github.com/consensys/gnark/constraint/bn254"
 )
@@ -627,4 +629,84 @@ func verifyContribution(c *Contribution, prevDelta bn254.G1Affine, prevHash []by
 	}
 
 	return nil
+}
+func verifyEquality(inputDecoder, originDecoder *bn254.Decoder, size int) error {
+	var in, or bn254.G1Affine
+	for i := 0; i < size; i++ {
+		if err := inputDecoder.Decode(&in); err != nil {
+			return err
+		}
+		if err := originDecoder.Decode(&or); err != nil {
+			return err
+		}
+		if !in.Equal(&or) {
+			return fmt.Errorf("inequal points detected")
+		}
+	}
+	return nil
+}
+
+func verifyParameter(delta, g *bn254.G2Affine, inputDecoder, originDecoder *bn254.Decoder, size int, field string) error {
+	// aggregate points
+	if in, or, err := aggregate(inputDecoder, originDecoder, size); err != nil {
+		return nil
+	} else {
+		if !common.SameRatio(*in, *or, *delta, *g) {
+			return fmt.Errorf("inconsistent update to %s", field)
+		}
+	}
+	return nil
+}
+
+func aggregate(inputDecoder, originDecoder *bn254.Decoder, size int) (*bn254.G1Affine, *bn254.G1Affine, error) {
+	var inG, orG, tmp bn254.G1Affine
+	// Allocate batch with smallest of (N, batchSize)
+	const batchSize = 1048576 // 2^20
+	var initialSize = int(math.Min(float64(size), float64(batchSize)))
+	buff := make([]bn254.G1Affine, initialSize)
+	r := make([]fr.Element, size)
+
+	remaining := size
+	for remaining > 0 {
+
+		// generate randomness
+		common.Parallelize(len(r), func(start, end int) {
+			for i := start; i < end; i++ {
+				r[i].SetRandom()
+			}
+		})
+
+		// Read from input
+		readCount := int(math.Min(float64(remaining), float64(batchSize)))
+		fmt.Println("Iterations ", int(remaining/readCount))
+		for i := 0; i < readCount; i++ {
+			if err := inputDecoder.Decode(&buff[i]); err != nil {
+				return nil, nil, err
+			}
+		}
+
+		// Aggregate input
+		if _, err := tmp.MultiExp(buff[:readCount], r[:readCount], ecc.MultiExpConfig{}); err != nil {
+			return nil, nil, err
+		}
+		inG.Add(&inG, &tmp)
+
+		// Read from origin
+		for i := 0; i < readCount; i++ {
+			if err := originDecoder.Decode(&buff[i]); err != nil {
+				return nil, nil, err
+			}
+		}
+
+		// Aggregate origin
+		if _, err := tmp.MultiExp(buff[:readCount], r[:readCount], ecc.MultiExpConfig{}); err != nil {
+			return nil, nil, err
+		}
+		orG.Add(&orG, &tmp)
+
+		// Update remaining
+		remaining -= readCount
+	}
+
+	return &inG, &orG, nil
 }

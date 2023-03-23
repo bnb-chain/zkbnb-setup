@@ -87,11 +87,12 @@ func p2c(cCtx *cli.Context) error {
 
 func p2v(cCtx *cli.Context) error {
 	// sanity check
-	if cCtx.Args().Len() != 1 {
+	if cCtx.Args().Len() != 2 {
 		return errors.New("please provide the correct arguments")
 	}
 	inputPath := cCtx.Args().Get(0)
-	err := phase2.Verify(inputPath)
+	originPath := cCtx.Args().Get(1)
+	err := phase2.Verify(inputPath, originPath)
 	return err
 }
 

@@ -88,9 +88,6 @@ func TestSetup(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err := phase1.Finalize("4.ph1"); err != nil {
-		t.Error(err)
-	}
 
 	// Phase 2 initialization
 	if err := phase2.Initialize("4.ph1", "circuit.r1cs", "0.ph2", "evals.ev"); err != nil {
@@ -156,10 +153,6 @@ func TestSetupFromFiles(t *testing.T) {
 
 	// Verify Phase 1 contributions
 	if err := phase1.Verify("4.ph1"); err != nil {
-		t.Error(err)
-	}
-
-	if err := phase1.Finalize("4.ph1"); err != nil {
 		t.Error(err)
 	}
 

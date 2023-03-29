@@ -49,17 +49,6 @@ func p1v(cCtx *cli.Context) error {
 	return err
 }
 
-func p1f(cCtx *cli.Context) error {
-	// sanity check
-	if cCtx.Args().Len() != 1 {
-		return errors.New("please provide the correct arguments")
-	}
-	
-	phase1Path := cCtx.Args().Get(0)
-	err := phase1.Finalize(phase1Path)
-	return err
-}
-
 func p2n(cCtx *cli.Context) error {
 	// sanity check
 	if cCtx.Args().Len() != 4 {

@@ -35,13 +35,6 @@ func main() {
 				Description: "verify phase 1 contributions for Groth16",
 				Action:      p1v,
 			},
-			/* --------------------------------- Phase 1 Finalize -------------------------------- */
-			{
-				Name:        "p1f",
-				Usage:       "p1f <inputPhase1Path>",
-				Description: "lagrangify final parameters from phase 1",
-				Action:      p1f,
-			},
 			/* --------------------------------- Phase 2 Initialize -------------------------------- */
 			{
 				Name:        "p2n",

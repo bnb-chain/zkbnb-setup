@@ -182,7 +182,7 @@ func TestSetupFromFiles(t *testing.T) {
 	// }
 
 	// Verify Phase 2 contributions
-	if err := phase2.Verify("1.ph2"); err != nil {
+	if err := phase2.Verify("1.ph2", "0.ph2"); err != nil {
 		t.Error(err)
 	}
 

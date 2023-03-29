@@ -83,6 +83,74 @@ func Initialize(inputPhase1Path, inputR1csPath, outputPhase2Path, outputEvalsPat
 	return nil
 }
 
+func InitializeFromPartedR1CS(inputPhase1Path, inputR1csSession, outputPhase2Path, outputEvalsPath string, nbCons, batchSize int) error {
+	// Input Phase 1
+	inputPhase1File, err := os.Open(inputPhase1Path)
+	if err != nil {
+		return err
+	}
+	defer inputPhase1File.Close()
+
+	// Output Phase 2
+	outputPhase2File, err := os.Create(outputPhase2Path)
+	if err != nil {
+		return err
+	}
+	defer outputPhase2File.Close()
+
+	// Output Evaluations
+	outputEvalsFile, err := os.Create(outputEvalsPath)
+	if err != nil {
+		return err
+	}
+	defer outputEvalsFile.Close()
+
+	// Read R1CS
+	fmt.Println("Reading R1CS...")
+	var r1cs cs_bn254.R1CS
+	{
+		name := fmt.Sprintf("%s.r1cs.E.save", inputR1csSession)
+		r1csDump, err := os.Open(name)
+		if err != nil {
+			return err
+		}
+		_, err = r1cs.ReadFrom(r1csDump)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Process Header
+	fmt.Println("Processing the header")
+	var header1 *phase1.Header
+	var header2 *Header
+	if header1, header2, err = processHeader2(&r1cs, nbCons, inputPhase1File, outputPhase2File); err != nil {
+		return err
+	}
+	fmt.Printf("Circuit Info, nConstraints:=%d, nInternal:=%d, nPublic:=%d\n", header2.Constraints, header2.Witness, header2.Public)
+
+	// Evaluate constraints
+	fmt.Println("Evaluating [A]₁, [B]₁, [B]₂")
+	if err := processEvaluations2(&r1cs, inputR1csSession, nbCons, batchSize, header1, header2, inputPhase1File, outputEvalsFile); err != nil {
+		return err
+	}
+
+	// Evaluate Delta and Z
+	fmt.Println("Evaluating Delta and Z")
+	if err := processDeltaAndZ(header1, header2, inputPhase1File, outputPhase2File); err != nil {
+		return err
+	}
+
+	// // Evaluate L
+	fmt.Println("Evaluating L")
+	if err := processL2(&r1cs, inputR1csSession, nbCons, batchSize, header1, header2, inputPhase1File, outputPhase2File); err != nil {
+		return err
+	}
+
+	fmt.Println("Phase 2 has been initialized successfully")
+	return nil
+}
+
 func Contribute(inputPath, outputPath string) error {
 	// Input file
 	inputFile, err := os.Open(inputPath)

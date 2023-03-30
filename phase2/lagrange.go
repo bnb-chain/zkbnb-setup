@@ -3,7 +3,6 @@ package phase2
 import (
 	"bufio"
 	"io"
-	"math"
 	"math/big"
 	"math/bits"
 	"os"
@@ -161,21 +160,20 @@ func difFFTG2(a []bn254.G2Affine, twiddles [][]fr.Element, stage, maxSplits int,
 	}
 }
 
-func lagrangifyG1(file *os.File, position int64, N int, domain *fft.Domain) error {
-	// Seek to position
-	if _, err := file.Seek(position, io.SeekStart); err != nil {
+func lagrangeG1(phase1File, lagFile *os.File, position int64, domain *fft.Domain) error {
+	if _, err := phase1File.Seek(position, io.SeekStart); err != nil {
 		return err
 	}
-	// Use buffered IO to write parameters efficiently
-	buffSize := int(math.Pow(2, 20))
-	reader := bufio.NewReaderSize(file, buffSize)
-	writer := bufio.NewWriterSize(file, buffSize)
+
+	reader := bufio.NewReader(phase1File)
+	writer := bufio.NewWriter(lagFile)
 	defer writer.Flush()
 	dec := bn254.NewDecoder(reader)
 	enc := bn254.NewEncoder(writer)
 
-	buff := make([]bn254.G1Affine, N)
-	for i := 0; i < N; i++ {
+	size := int(domain.Cardinality)
+	buff := make([]bn254.G1Affine, size)
+	for i := 0; i < len(buff); i++ {
 		if err := dec.Decode(&buff[i]); err != nil {
 			return err
 		}
@@ -191,32 +189,28 @@ func lagrangifyG1(file *os.File, position int64, N int, domain *fft.Domain) erro
 			buff[i].ScalarMultiplication(&buff[i], &invBigint)
 		}
 	})
-	// Append to the end
-	if _, err := file.Seek(0, io.SeekEnd); err != nil {
-		return err
-	}
-	// Serialize it
+
 	if err := enc.Encode(buff); err != nil {
 		return err
 	}
 	return nil
 }
 
-func lagrangifyG2(file *os.File, position int64, N int, domain *fft.Domain) error {
+func lagrangeG2(phase1File, lagFile *os.File, position int64, domain *fft.Domain) error {
 	// Seek to position
-	if _, err := file.Seek(position, io.SeekStart); err != nil {
+	if _, err := phase1File.Seek(position, io.SeekStart); err != nil {
 		return err
 	}
-	// Use buffered IO to write parameters efficiently
-	buffSize := int(math.Pow(2, 20))
-	reader := bufio.NewReaderSize(file, buffSize)
-	writer := bufio.NewWriterSize(file, buffSize)
+
+	reader := bufio.NewReader(phase1File)
+	writer := bufio.NewWriter(lagFile)
 	defer writer.Flush()
 	dec := bn254.NewDecoder(reader)
 	enc := bn254.NewEncoder(writer)
 
-	buff := make([]bn254.G2Affine, N)
-	for i := 0; i < N; i++ {
+	size := int(domain.Cardinality)
+	buff := make([]bn254.G2Affine, size)
+	for i := 0; i < len(buff); i++ {
 		if err := dec.Decode(&buff[i]); err != nil {
 			return err
 		}
@@ -232,15 +226,9 @@ func lagrangifyG2(file *os.File, position int64, N int, domain *fft.Domain) erro
 			buff[i].ScalarMultiplication(&buff[i], &invBigint)
 		}
 	})
-	// Append to the end
-	if _, err := file.Seek(0, io.SeekEnd); err != nil {
-		return err
-	}
 
-	// Serialize it
 	if err := enc.Encode(buff); err != nil {
 		return err
 	}
-
 	return nil
 }

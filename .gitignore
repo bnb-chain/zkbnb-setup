@@ -1,7 +1,8 @@
 *.ph1
 *.ph2
 *.r1cs
-*.ev
+evals
+srs.lag
 pk
 vk
 zkbnb-setup

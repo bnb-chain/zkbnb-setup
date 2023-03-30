@@ -10,72 +10,47 @@ import (
 	"os"
 
 	"github.com/bnbchain/zkbnb-setup/common"
-	"github.com/bnbchain/zkbnb-setup/phase1"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
-	cs_bn254 "github.com/consensys/gnark/constraint/bn254"
 )
 
-func Initialize(inputPhase1Path, inputR1csPath, outputPhase2Path, outputEvalsPath string) error {
-	// Input Phase 1
-	inputPhase1File, err := os.Open(inputPhase1Path)
+func Initialize(phase1Path, r1csPath, phase2Path string) error {
+	phase1File, err := os.Open(phase1Path)
 	if err != nil {
 		return err
 	}
-	defer inputPhase1File.Close()
+	defer phase1File.Close()
 
-	// Input R1CS
-	inputR1csFile, err := os.Open(inputR1csPath)
+	phase2File, err := os.Create(phase2Path)
 	if err != nil {
 		return err
 	}
-	defer inputR1csFile.Close()
+	defer phase2File.Close()
 
-	// Output Phase 2
-	outputPhase2File, err := os.Create(outputPhase2Path)
+	// 1. Process Headers
+	// TODO: we just need the nbConstraints from r1cs not the whole thing
+	header1, header2, err := processHeader(r1csPath, phase1File, phase2File)
 	if err != nil {
 		return err
 	}
-	defer outputPhase2File.Close()
 
-	// Output Evaluations
-	outputEvalsFile, err := os.Create(outputEvalsPath)
-	if err != nil {
-		return err
-	}
-	defer outputEvalsFile.Close()
-
-	// Read R1CS
-	fmt.Println("Reading R1CS...")
-	var r1cs cs_bn254.R1CS
-	if _, err := r1cs.ReadFrom(inputR1csFile); err != nil {
+	// 2. Convert phase 1 SRS to Lagrange basis
+	if err := processLagrange(header1, header2, phase1File, phase2File); err != nil {
 		return err
 	}
 
-	// Process Header
-	fmt.Println("Processing the header")
-	var header1 *phase1.Header
-	var header2 *Header
-	if header1, header2, err = processHeader(&r1cs, inputPhase1File, outputPhase2File); err != nil {
-		return err
-	}
-	fmt.Printf("Circuit Info, nConstraints:=%d, nInternal:=%d, nPublic:=%d\n", header2.Constraints, header2.Witness, header2.Public)
-
-	// Evaluate constraints
-	fmt.Println("Evaluating [A]₁, [B]₁, [B]₂")
-	if err := processEvaluations(&r1cs, header1, header2, inputPhase1File, outputEvalsFile); err != nil {
+	// 3. Evaluate A, B, C
+	if err := processEvaluations(header1, header2, r1csPath, phase1File); err != nil {
 		return err
 	}
 
 	// Evaluate Delta and Z
-	fmt.Println("Evaluating Delta and Z")
-	if err := processDeltaAndZ(header1, header2, inputPhase1File, outputPhase2File); err != nil {
+	if err := processDeltaAndZ(header1, header2, phase1File, phase2File); err != nil {
 		return err
 	}
 
 	// // Evaluate L
-	fmt.Println("Evaluating L")
-	if err := processL(&r1cs, header1, header2, inputPhase1File, outputPhase2File); err != nil {
+	if err := processL(header1, header2, r1csPath, phase2File); err != nil {
 		return err
 	}
 

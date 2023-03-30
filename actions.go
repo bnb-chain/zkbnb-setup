@@ -51,15 +51,14 @@ func p1v(cCtx *cli.Context) error {
 
 func p2n(cCtx *cli.Context) error {
 	// sanity check
-	if cCtx.Args().Len() != 4 {
+	if cCtx.Args().Len() != 3 {
 		return errors.New("please provide the correct arguments")
 	}
 	
 	phase1Path := cCtx.Args().Get(0)
 	r1csPath := cCtx.Args().Get(1)
 	phase2Path := cCtx.Args().Get(2)
-	evalsPath := cCtx.Args().Get(3)
-	err := phase2.Initialize(phase1Path, r1csPath, phase2Path, evalsPath)
+	err := phase2.Initialize(phase1Path, r1csPath, phase2Path)
 	return err
 }
 
@@ -87,11 +86,10 @@ func p2v(cCtx *cli.Context) error {
 
 func extract(cCtx *cli.Context) error {
 	// sanity check
-	if cCtx.Args().Len() != 2 {
+	if cCtx.Args().Len() != 1 {
 		return errors.New("please provide the correct arguments")
 	}
 	inputPath := cCtx.Args().Get(0)
-	evalsPath := cCtx.Args().Get(1)
-	err := keys.ExtractKeys(inputPath, evalsPath)
+	err := keys.ExtractKeys(inputPath)
 	return err
 }

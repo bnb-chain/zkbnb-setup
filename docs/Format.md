@@ -65,7 +65,6 @@ The main objective is to reduce the storage/bandwidth cost for phase 2 contribut
 # Phase 2 Lagrange File Format
     LagrangeSRS
     {
-        Domain                  <4 bytes>
         {[τ]₁}                  <32(2ᵖ)+4 bytes>
         {[ατ]₁}                 <32(2ᴾ)+4 bytes>
         {[βτ]₁}                 <32(2ᴾ)+4 bytes>

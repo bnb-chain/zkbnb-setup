@@ -63,23 +63,23 @@ func TestSetup(t *testing.T) {
 	if err := phase1.Contribute("0.ph1", "1.ph1"); err != nil {
 		t.Error(err)
 	}
-	// if err := phase1.Contribute("1.ph1", "2.ph1"); err != nil {
-	// 	t.Error(err)
-	// }
-	// if err := phase1.Contribute("2.ph1", "3.ph1"); err != nil {
-	// 	t.Error(err)
-	// }
-	// if err := phase1.Contribute("3.ph1", "4.ph1"); err != nil {
-	// 	t.Error(err)
-	// }
+	if err := phase1.Contribute("1.ph1", "2.ph1"); err != nil {
+		t.Error(err)
+	}
+	if err := phase1.Contribute("2.ph1", "3.ph1"); err != nil {
+		t.Error(err)
+	}
+	if err := phase1.Contribute("3.ph1", "4.ph1"); err != nil {
+		t.Error(err)
+	}
 
 	// Verify Phase 1 contributions
-	if err := phase1.Verify("1.ph1"); err != nil {
+	if err := phase1.Verify("4.ph1"); err != nil {
 		t.Error(err)
 	}
 
 	// Phase 2 initialization
-	if err := phase2.Initialize("1.ph1", "circuit.r1cs", "0.ph2"); err != nil {
+	if err := phase2.Initialize("4.ph1", "circuit.r1cs", "0.ph2"); err != nil {
 		t.Error(err)
 	}
 
@@ -88,16 +88,16 @@ func TestSetup(t *testing.T) {
 		t.Error(err)
 	}
 
-	// if err := phase2.Contribute("1.ph2", "2.ph2"); err != nil {
-	// 	t.Error(err)
-	// }
+	if err := phase2.Contribute("1.ph2", "2.ph2"); err != nil {
+		t.Error(err)
+	}
 
-	// if err := phase2.Contribute("2.ph2", "3.ph2"); err != nil {
-	// 	t.Error(err)
-	// }
+	if err := phase2.Contribute("2.ph2", "3.ph2"); err != nil {
+		t.Error(err)
+	}
 
 	// Verify Phase 2 contributions
-	if err := phase2.Verify("1.ph2", "0.ph2"); err != nil {
+	if err := phase2.Verify("3.ph2", "0.ph2"); err != nil {
 		t.Error(err)
 	}
 

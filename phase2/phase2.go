@@ -28,7 +28,6 @@ func Initialize(phase1Path, r1csPath, phase2Path string) error {
 	defer phase2File.Close()
 
 	// 1. Process Headers
-	// TODO: we just need the nbConstraints from r1cs not the whole thing
 	header1, header2, err := processHeader(r1csPath, phase1File, phase2File)
 	if err != nil {
 		return err

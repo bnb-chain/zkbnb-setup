@@ -66,7 +66,7 @@ func ExtractKeys(phase2Path string) error {
 	evalsReader := bufio.NewReaderSize(evalsFile, buffSize)
 
 	var header phase2.Header
-	if err := header.ReadFrom(ph2Reader); err != nil {
+	if _, err := header.ReadFrom(ph2Reader); err != nil {
 		return err
 	}
 

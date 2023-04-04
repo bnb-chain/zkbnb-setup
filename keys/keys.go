@@ -6,7 +6,6 @@ import (
 	"math"
 	"os"
 
-	"github.com/bnbchain/zkbnb-setup/common"
 	"github.com/bnbchain/zkbnb-setup/phase2"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr/fft"
@@ -156,7 +155,6 @@ func ExtractKeys(phase2Path string) error {
 			return err
 		}
 	}
-	common.BitReverseG1(pk.G1.Z)
 
 	// Read VKK
 	vk.G1.K = make([]bn254.G1Affine, header.Public)

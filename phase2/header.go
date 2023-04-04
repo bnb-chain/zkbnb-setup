@@ -13,40 +13,53 @@ type Header struct {
 	Contributions uint16
 }
 
-func (p *Header) ReadFrom(reader io.Reader) error {
+func (p *Header) ReadFrom(reader io.Reader) (int64, error) {
 	// Witness
 	buff := make([]byte, 4)
-	if _, err := reader.Read(buff); err != nil {
-		return err
+	var bytesRead int64 = 0
+
+	n, err := reader.Read(buff)
+	bytesRead += int64(n)
+	if err != nil {
+		return bytesRead, err
 	}
 	p.Witness = binary.BigEndian.Uint32(buff)
+	
 
 	// Public
-	if _, err := reader.Read(buff); err != nil {
-		return err
+	n, err = reader.Read(buff)
+	bytesRead += int64(n)
+	if err != nil {
+		return bytesRead, err
 	}
 	p.Public = binary.BigEndian.Uint32(buff)
 
 	// Constraints
-	if _, err := reader.Read(buff); err != nil {
-		return err
+	n, err = reader.Read(buff)
+	bytesRead += int64(n)
+	if err != nil {
+		return bytesRead, err
 	}
 	p.Constraints = binary.BigEndian.Uint32(buff)
 
 	// Domain
-	if _, err := reader.Read(buff); err != nil {
-		return err
+	n, err = reader.Read(buff)
+	bytesRead += int64(n)
+	if err != nil {
+		return bytesRead, err
 	}
 	p.Domain = binary.BigEndian.Uint32(buff)
 
 	// Contributions
 	buff = buff[:2]
-	if _, err := reader.Read(buff); err != nil {
-		return err
+	n, err = reader.Read(buff)
+	bytesRead += int64(n)
+	if err != nil {
+		return bytesRead, err
 	}
 	p.Contributions = binary.BigEndian.Uint16(buff)
 
-	return nil
+	return bytesRead, nil
 }
 
 func (p *Header) writeTo(writer io.Writer) error {

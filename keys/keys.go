@@ -45,7 +45,7 @@ type VerifyingKey struct {
 	}
 }
 
-func ExtractKeys(phase2Path, evalsPath string) error {
+func ExtractKeys(phase2Path string) error {
 	// Phase 2 file
 	phase2File, err := os.Open(phase2Path)
 	if err != nil {
@@ -54,7 +54,7 @@ func ExtractKeys(phase2Path, evalsPath string) error {
 	defer phase2File.Close()
 
 	// Evaluations
-	evalsFile, err := os.Open(evalsPath)
+	evalsFile, err := os.Open("evals")
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func ExtractKeys(phase2Path, evalsPath string) error {
 	evalsReader := bufio.NewReaderSize(evalsFile, buffSize)
 
 	var header phase2.Header
-	if err := header.ReadFrom(ph2Reader); err != nil {
+	if _, err := header.ReadFrom(ph2Reader); err != nil {
 		return err
 	}
 

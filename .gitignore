@@ -1,0 +1,8 @@
+*.ph1
+*.ph2
+*.r1cs
+evals
+srs.lag
+pk
+vk
+zkbnb-setup

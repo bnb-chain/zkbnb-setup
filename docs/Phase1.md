@@ -11,20 +11,16 @@ The value of `2ᵖ` determines the maximum number of constraints for circuits se
 
 ## Initialization
 **Note** Value between `<>` are arguments replaced by actual values during the setup
-1. Coordinator run the command `zkbnb-setup p1n <p> <outputPath>`.
+1. Coordinator run the command `zkbnb-setup p1n <p> <output.ph1>`.
 
 ## Contributions
 This is a sequential process that will be repeated for each contributor.
-1. The coordinator sends the latest ```*.ph1``` file to the current contributor
-2. The contributor run the command `zkbnb-setup p1c <inputPath.ph1> <outputPath.ph1>`.
+1. The coordinator sends the latest `*.ph1` file to the current contributor
+2. The contributor run the command `zkbnb-setup p1c <input.ph1> <output.ph1>`.
 3. Upon successful contribution, the program will output **contribution hash** which must be attested to
 4. The contributor sends the output file back to the coordinator
-5. The coordinator verifies the file by running `zkbnb-setup p1v <inputPath.ph1>`. 
+5. The coordinator verifies the file by running `zkbnb-setup p1v <output.ph1>`. 
 6. Upon successful verification, the coordinator asks the contributor to attest their contribution.
-
-## Finalization
-This is the last step after concoluding phase 1 ceremony, the objective is to convert SRS from Monomial to Lagrange basis. 
-1. Coordinator run the command `zkbnb-setup p1f <inputPath.ph1`
 
 
 ## Security Note

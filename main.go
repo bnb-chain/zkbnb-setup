@@ -13,7 +13,7 @@ func main() {
 		Usage:     "Use this tool to generate parameters of Groth16 via MPC",
 		UsageText: "setup command [arguments...]",
 		Commands: []*cli.Command{
-			/* --------------------------------- Phase 1 Initialize -------------------------------- */
+			/* --------------------------- Phase 1 Initialize --------------------------- */
 			{
 				Name:        "p1n",
 				Usage:       "p1n <power> <outputPath>",
@@ -21,53 +21,53 @@ func main() {
 				Action:      p1n,
 			},
 
-			/* --------------------------------- Phase 1 Contribute -------------------------------- */
+			
+			/* --------------------------- Phase 1 Contribute --------------------------- */
 			{
 				Name:        "p1c",
 				Usage:       "p1c <inputPath> <outputPath>",
 				Description: "contribute phase 1 randomness for Groth16",
 				Action:      p1c,
 			},
-			/* --------------------------------- Phase 1 Verify -------------------------------- */
+			/* ----------------------------- Phase 1 Verify ----------------------------- */
 			{
 				Name:        "p1v",
 				Usage:       "p1v <inputPath>",
 				Description: "verify phase 1 contributions for Groth16",
 				Action:      p1v,
 			},
-			/* --------------------------------- Phase 1 Finalize -------------------------------- */
-			{
-				Name:        "p1f",
-				Usage:       "p1f <inputPhase1Path>",
-				Description: "lagrangify final parameters from phase 1",
-				Action:      p1f,
-			},
-			/* --------------------------------- Phase 2 Initialize -------------------------------- */
+			/* --------------------------- Phase 2 Initialize --------------------------- */
 			{
 				Name:        "p2n",
-				Usage:       "p2n <inputPhase1Path> <inputR1CS> <outputPhase2> <evaluations>",
+				Usage:       "p2n <phase1Path> <r1csPath> <phase2Path>",
 				Description: "initialize phase 2 for the given circuit",
 				Action:      p2n,
 			},
-
-			/* --------------------------------- Phase 2 Contribute -------------------------------- */
+			/* ------------------- Phase 2 Initialize from parted R1CS ------------------ */
+			{
+				Name:        "p2np",
+				Usage:       "p2np <phase1Path> <r1csPath> <outputPhase2> <#constraints> <batchSize>",
+				Description: "initialize phase 2 for the given circuit parted R1CS",
+				Action:      p2np,
+			},
+			/* --------------------------- Phase 2 Contribute --------------------------- */
 			{
 				Name:        "p2c",
 				Usage:       "p2c <inputPath> <outputPath>",
 				Description: "contribute phase 2 randomness for Groth16",
 				Action:      p2c,
 			},
-			/* --------------------------------- Phase 2 Verify -------------------------------- */
+			/* ----------------------------- Phase 2 Verify ----------------------------- */
 			{
 				Name:        "p2v",
 				Usage:       "p2v <inputPath>",
 				Description: "verify phase 2 contributions for Groth16",
 				Action:      p2v,
 			},
-			/* --------------------------------- Keys Extraction -------------------------------- */
+			/* ----------------------------- Keys Extraction ---------------------------- */
 			{
 				Name:        "keys",
-				Usage:       "keys <inputPath> <evaluations>",
+				Usage:       "keys <inputPath>",
 				Description: "extract proving and verifying keys",
 				Action:      extract,
 			},

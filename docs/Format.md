@@ -27,13 +27,6 @@
         }
         ...
     }
-    LagrangeSRS
-    {
-        {[τ]₁}                  <32(2ᵖ)+4 bytes>
-        {[ατ]₁}                 <32(2ᴾ)+4 bytes>
-        {[βτ]₁}                 <32(2ᴾ)+4 bytes>
-        {[τ]₂}                  <64(2ᴾ)+4 bytes>
-    }
 
 
 
@@ -66,7 +59,19 @@
 
 
 **Note** only the Witness part of L is updated in contributions
-# Phase 2 File Format for *.ev
+
+The following files are generated as part of `zkbnb-setup p2n` command and will be used at the end of phase 2 by `zkbnb-setup keys` command.
+The main objective is to reduce the storage/bandwidth cost for phase 2 contributors since these files aren't used during `zkbnb-setup p2c`
+# Phase 2 Lagrange File Format
+    LagrangeSRS
+    {
+        {[τ]₁}                  <32(2ᵖ)+4 bytes>
+        {[ατ]₁}                 <32(2ᴾ)+4 bytes>
+        {[βτ]₁}                 <32(2ᴾ)+4 bytes>
+        {[τ]₂}                  <64(2ᴾ)+4 bytes>
+    }
+
+# Phase 2 Evaluation File Format for *.ev
 
     Evaluation 
     {

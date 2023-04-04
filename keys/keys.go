@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/bnbchain/zkbnb-setup/common"
 	"github.com/bnbchain/zkbnb-setup/phase2"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr/fft"
@@ -127,13 +126,12 @@ func extractPK(phase2Path string) error {
 			return err
 		}
 	}
-	common.BitReverseG1(buffG1)
 	if err := encPk.Encode(buffG1); err != nil {
 		return err
 	}
 
 	// 7. Read/Write K (ie. private part of L)
-	pos := int64((header.Public +header.Domain-1)*32+96+18)
+	pos := int64((header.Public+header.Domain-1)*32 + 96 + 18)
 	if _, err := phase2File.Seek(pos, io.SeekStart); err != nil {
 		return err
 	}
@@ -237,7 +235,6 @@ func extractVK(phase2Path string) error {
 	var alphaG1, betaG1, deltaG1 bn254.G1Affine
 	var betaG2, deltaG2 bn254.G2Affine
 
-
 	// 1. Read/Write [α]₁
 	if err := decEvals.Decode(&alphaG1); err != nil {
 		return err
@@ -263,7 +260,7 @@ func extractVK(phase2Path string) error {
 	}
 
 	// 4. Read/Write [γ]₂
-	_,_,_,gammaG2 := bn254.Generators()
+	_, _, _, gammaG2 := bn254.Generators()
 	if err := encVk.Encode(&gammaG2); err != nil {
 		return err
 	}
@@ -276,7 +273,6 @@ func extractVK(phase2Path string) error {
 		return err
 	}
 
-	
 	// 6. Read/Write [δ]₂
 	if err := decPh2.Decode(&deltaG2); err != nil {
 		return err
@@ -286,12 +282,14 @@ func extractVK(phase2Path string) error {
 	}
 
 	// 7. Read/Write K
-	pos := int64((header.Domain-1)*32+96+18)
-	if _, err := phase2File.Seek(pos, io.SeekStart); err!= nil {
+	pos := int64((header.Domain-1)*32 + 96 + 18)
+	if _, err := phase2File.Seek(pos, io.SeekStart); err != nil {
 		return err
 	}
+	ph2Reader.Reset(phase2File)
+
 	buffG1 := make([]bn254.G1Affine, header.Public)
-	for i:=0; i<len(buffG1); i++ {
+	for i := 0; i < len(buffG1); i++ {
 		if err := decPh2.Decode(&buffG1[i]); err != nil {
 			return err
 		}
@@ -305,11 +303,11 @@ func extractVK(phase2Path string) error {
 
 func ExtractKeys(phase2Path string) error {
 	fmt.Println("Extracting proving key")
-	if err := extractPK(phase2Path); err!= nil {
+	if err := extractPK(phase2Path); err != nil {
 		return err
 	}
 	fmt.Println("Extracting verifying key")
-	if err := extractVK(phase2Path); err!= nil {
+	if err := extractVK(phase2Path); err != nil {
 		return err
 	}
 	fmt.Println("Keys have been extracted successfully")

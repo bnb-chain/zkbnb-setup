@@ -101,7 +101,14 @@ func TestSetup(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err := keys.ExtractKeys("1.ph2"); err != nil {
+	if err := keys.ExtractKeys("3.ph2"); err != nil {
+		t.Error(err)
+	}
+}
+
+
+func TestKeys(t *testing.T) {
+	if err := keys.ExtractKeys("3.ph2"); err != nil {
 		t.Error(err)
 	}
 }

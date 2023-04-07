@@ -232,11 +232,9 @@ func processEvaluations(header1 *phase1.Header, header2 *Header, r1csPath string
 }
 
 func processDeltaAndZ(header1 *phase1.Header, header2 *Header, phase1File, phase2File *os.File) error {
-	fmt.Println("Processing Delta and Z")
-	reader := bufio.NewReader(phase1File)
+	fmt.Println("Processing Delta and Z")	
 	writer := bufio.NewWriter(phase2File)
-	defer writer.Flush()
-	dec := bn254.NewDecoder(reader)
+	defer writer.Flush()	
 	enc := bn254.NewEncoder(writer)
 
 	// Write [δ]₁ and [δ]₂
@@ -253,9 +251,10 @@ func processDeltaAndZ(header1 *phase1.Header, header2 *Header, phase1File, phase
 	if _, err := phase1File.Seek(pos, io.SeekStart); err != nil {
 		return err
 	}
-	reader.Reset(phase1File)
+	reader := bufio.NewReader(phase1File)
+	dec := bn254.NewDecoder(reader)
 
-	n := int(header2.Domain)
+	n := header2.Domain
 	tauG1 := make([]bn254.G1Affine, 2*n-1)
 	for i := 0; i < len(tauG1); i++ {
 		if err := dec.Decode(&tauG1[i]); err != nil {

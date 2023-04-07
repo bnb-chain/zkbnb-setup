@@ -62,31 +62,29 @@ func Contribute(inputPath, outputPath string) error {
 		return err
 	}
 	defer inputFile.Close()
+	reader := bufio.NewReader(inputFile)
+	dec := bn254.NewDecoder(reader)
 
 	// Output file
 	outputFile, err := os.Create(outputPath)
 	if err != nil {
 		return err
 	}
-	defer outputFile.Close()
+	defer outputFile.Close()	
+	writer := bufio.NewWriter(outputFile)
+	defer writer.Flush()	
+	enc := bn254.NewEncoder(writer)
 
 	// Read/Write header with extra contribution
 	var header Header
-	if err := header.Read(inputFile); err != nil {
+	if err := header.Read(reader); err != nil {
 		return err
 	}
 	fmt.Printf("Current #Contributions := %d\n", header.Contributions)
 	header.Contributions++
-	if err := header.write(outputFile); err != nil {
+	if err := header.write(writer); err != nil {
 		return err
 	}
-
-	reader := bufio.NewReader(inputFile)
-	writer := bufio.NewWriter(outputFile)
-	defer writer.Flush()
-
-	dec := bn254.NewDecoder(reader)
-	enc := bn254.NewEncoder(writer)
 
 	// Sample toxic parameters
 	fmt.Println("Sampling toxic parameters Delta")
@@ -121,17 +119,17 @@ func Contribute(inputPath, outputPath string) error {
 	}
 
 	// Process Z using δ⁻¹
-	if err = scale(dec, enc, int(header.Domain-1), &deltaInvBI); err != nil {
+	if err = scale(dec, enc, header.Domain-1, &deltaInvBI); err != nil {
 		return err
 	}
 
 	// Process PKK using δ⁻¹
-	if err = scale(dec, enc, int(header.Witness), &deltaInvBI); err != nil {
+	if err = scale(dec, enc, header.Witness, &deltaInvBI); err != nil {
 		return err
 	}
 
 	// Copy old contributions
-	nExistingContributions := int(header.Contributions - 1)
+	nExistingContributions := header.Contributions - 1
 	var c Contribution
 	for i := 0; i < nExistingContributions; i++ {
 		if _, err := c.readFrom(reader); err != nil {

@@ -3,6 +3,7 @@ package phase2
 import (
 	"bufio"
 	"bytes"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"io"
@@ -19,7 +20,8 @@ import (
 	"github.com/consensys/gnark/constraint"
 	cs_bn254 "github.com/consensys/gnark/constraint/bn254"
 )
-func nextPowerofTwo (number int) int {
+
+func nextPowerofTwo(number int) int {
 	res := 2
 	for i := 1; i < 28; i++ { // max power is 28
 		if res >= number {
@@ -75,7 +77,7 @@ func processHeader(r1csPath string, phase1File, phase2File *os.File) (*phase1.He
 		return nil, nil, err
 	}
 	fmt.Printf("Circuit Info: #Constraints:=%d\n#Wires:=%d\n#Public:=%d\n#Witness:=%d\n#PrivateCommitted:=%d\n",
-	header2.Constraints, header2.Wires, header2.Public, header2.Witness, header2.PrivateCommitted)
+		header2.Constraints, header2.Wires, header2.Public, header2.Witness, header2.PrivateCommitted)
 	return &header1, &header2, nil
 }
 
@@ -120,7 +122,7 @@ func processLagrange(header1 *phase1.Header, header2 *Header, phase1File, phase2
 	return nil
 }
 
-func processEvaluations(header1 *phase1.Header, header2 *Header,r1csPath string, phase1File *os.File) error {
+func processEvaluations(header1 *phase1.Header, header2 *Header, r1csPath string, phase1File *os.File) error {
 	fmt.Println("Processing evaluation of [A]₁, [B]₁, [B]₂")
 
 	lagFile, err := os.Open("srs.lag")
@@ -279,8 +281,8 @@ func processDeltaAndZ(header1 *phase1.Header, header2 *Header, phase1File, phase
 	return nil
 }
 
-func processL(header1 *phase1.Header, header2 *Header, r1csPath string, phase2File *os.File) error {
-	fmt.Println("Processing L")
+func processPVCKK(header1 *phase1.Header, header2 *Header, r1csPath string, phase2File *os.File) error {
+	fmt.Println("Processing PKK, VKK, and CKK")
 	lagFile, err := os.Open("srs.lag")
 	if err != nil {
 		return err
@@ -298,7 +300,28 @@ func processL(header1 *phase1.Header, header2 *Header, r1csPath string, phase2Fi
 		return err
 	}
 
-	nWires := header2.Witness + header2.Public
+	pkk := make([]bn254.G1Affine, header2.Witness)
+	vkk := make([]bn254.G1Affine, header2.Public)
+	ckk := make([]bn254.G1Affine, header2.PrivateCommitted)
+	pI, vI, cI := 0, 0, 0
+
+	get := func(wireID int) *bn254.G1Affine {
+		isCommittedPrivate := cI < r1cs.CommitmentInfo.NbPrivateCommitted && wireID == r1cs.CommitmentInfo.PrivateCommitted()[wireID]
+		isCommitment := r1cs.CommitmentInfo.Is() && wireID == r1cs.CommitmentInfo.CommitmentIndex
+		isPublic := wireID < r1cs.GetNbPublicVariables()
+
+		if isCommittedPrivate {
+			cI++
+			return &ckk[cI-1]
+		} else if isCommitment || isPublic {
+			vI++
+			return &vkk[vI-1]
+		} else {
+			pI++
+			return &pkk[pI-1]
+		}
+	}
+
 	var buffSRS []bn254.G1Affine
 	reader := bufio.NewReader(lagFile)
 	writer := bufio.NewWriter(phase2File)
@@ -306,17 +329,17 @@ func processL(header1 *phase1.Header, header2 *Header, r1csPath string, phase2Fi
 	dec := bn254.NewDecoder(reader)
 	enc := bn254.NewEncoder(writer)
 
-	// L =  Output(TauG1) + Right(AlphaTauG1) + Left(BetaTauG1)
-	L := make([]bn254.G1Affine, nWires)
+	// O(TauG1) + R(AlphaTauG1) + L(BetaTauG1)
 
 	// Deserialize Lagrange SRS TauG1
 	if err := dec.Decode(&buffSRS); err != nil {
 		return err
 	}
+
 	for i, c := range r1cs.Constraints {
-		// Output(Tau)
+		// O(Tau)
 		for _, t := range c.O {
-			accumulateG1(&r1cs, &L[t.WireID()], t, &buffSRS[i])
+			accumulateG1(&r1cs, get(t.WireID()), t, &buffSRS[i])
 		}
 	}
 
@@ -325,9 +348,9 @@ func processL(header1 *phase1.Header, header2 *Header, r1csPath string, phase2Fi
 		return err
 	}
 	for i, c := range r1cs.Constraints {
-		// Right(AlphaTauG1)
+		// R(AlphaTauG1)
 		for _, t := range c.R {
-			accumulateG1(&r1cs, &L[t.WireID()], t, &buffSRS[i])
+			accumulateG1(&r1cs, get(t.WireID()), t, &buffSRS[i])
 		}
 	}
 
@@ -336,18 +359,43 @@ func processL(header1 *phase1.Header, header2 *Header, r1csPath string, phase2Fi
 		return err
 	}
 	for i, c := range r1cs.Constraints {
-		// Left(BetaTauG1)
+		// L(BetaTauG1)
 		for _, t := range c.L {
-			accumulateG1(&r1cs, &L[t.WireID()], t, &buffSRS[i])
+			accumulateG1(&r1cs, get(t.WireID()), t, &buffSRS[i])
 		}
 	}
 
-	// Write L
-	for i := 0; i < len(L); i++ {
-		if err := enc.Encode(&L[i]); err != nil {
+	// Write PKK
+	for i := 0; i < len(pkk); i++ {
+		if err := enc.Encode(&pkk[i]); err != nil {
 			return err
 		}
 	}
+
+	// VKK
+	evalFile, err := os.OpenFile("evals", os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer evalFile.Close()
+	evalWriter := bufio.NewWriter(evalFile)
+	defer evalWriter.Flush()
+	evalEnc := bn254.NewEncoder(evalWriter)
+	if err := evalEnc.Encode(vkk); err != nil {
+		return err
+	}
+
+	// Write CKK
+	if err := evalEnc.Encode(ckk); err != nil {
+		return err
+	}
+
+	// Write CommitmentInfo
+	cmtEnc := gob.NewEncoder(evalWriter)
+	if err := cmtEnc.Encode(r1cs.CommitmentInfo); err != nil {
+		return err
+	}
+
 	return nil
 }
 

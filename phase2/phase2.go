@@ -38,7 +38,7 @@ func Initialize(phase1Path, r1csPath, phase2Path string) error {
 		return err
 	}
 
-	// 3. Evaluate A, B, C
+	// 3. Process evaluation
 	if err := processEvaluations(header1, header2, r1csPath, phase1File); err != nil {
 		return err
 	}
@@ -48,8 +48,8 @@ func Initialize(phase1Path, r1csPath, phase2Path string) error {
 		return err
 	}
 
-	// // Evaluate L
-	if err := processL(header1, header2, r1csPath, phase2File); err != nil {
+	// Process parameters
+	if err := processPVCKK(header1, header2, r1csPath, phase2File); err != nil {
 		return err
 	}
 

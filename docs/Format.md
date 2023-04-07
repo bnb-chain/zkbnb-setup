@@ -43,6 +43,7 @@
     Parameters {
         [δ]₁                    <32 bytes>
         [δ]₂                    <64 bytes>
+        Z                       <32(#Domain-1) bytes>
         PKK                     <32(#Witness) bytes>
     }
     Contributions
@@ -81,7 +82,6 @@ The main objective is to reduce the storage/bandwidth cost for phase 2 contribut
         [A]₁                    <32(#Wires)+4 bytes>
         [B]₁                    <32(#Wires)+4 bytes>
         [B]₂                    <64(#Wires)+4 bytes>
-        Z                       <32(#Domain-1)+4 bytes>
         VKK                     <32(#Public)+4 bytes>
         CKK                     <32(#PrivateCommitted)+4 bytes>
         CmtInfo                 <Gob>

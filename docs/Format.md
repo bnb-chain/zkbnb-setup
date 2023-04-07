@@ -38,7 +38,7 @@
         #PrivateCommitted       <4  bytes>
         #Constraints            <4  bytes>
         #Domain                 <4  bytes>
-        #Contributions          <2  bytes>
+        #Contributions          <4  bytes>
     }
     Parameters {
         [δ]₁                    <32 bytes>

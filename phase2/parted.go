@@ -77,40 +77,36 @@ func processHeaderParted(r1cs *cs_bn254.R1CS, nbCons int, phase1File, phase2File
 	var header2 Header
 	var header1 phase1.Header
 
-	// Read the #Constraints
-	header2.Constraints = uint32(nbCons)
+	header2.Constraints = nbCons
+	header2.Domain = nextPowerofTwo(header2.Constraints)
 
 	// Check if phase 1 power can support the current #Constraints
 	if err := header1.ReadFrom(phase1File); err != nil {
 		return nil, nil, err
 	}
 	N := int(math.Pow(2, float64(header1.Power)))
-	if N < nbCons {
-		return nil, nil, fmt.Errorf("phase 1 parameters can support up to %d, but the circuit #Constraints are %d", N, r1cs.GetNbConstraints())
+	if N < header2.Constraints {
+		return nil, nil, fmt.Errorf("phase 1 parameters can support up to %d, but the circuit #Constraints are %d", N, header2.Constraints)
 	}
 
-	nextPowerofTwo := func(number int) int {
-		res := 2
-		for i := 1; i < 28; i++ { // max power is 28
-			if res >= number {
-				return res
-			} else {
-				res *= 2
-			}
-		}
-		// Shouldn't happen
-		panic("the power is beyond 28")
+	// Initialize Domain, #Wires, #Witness, #Public, #PrivateCommitted
+	header2.Wires = r1cs.NbInternalVariables + r1cs.GetNbPublicVariables() + r1cs.GetNbSecretVariables()
+	header2.PrivateCommitted = r1cs.CommitmentInfo.NbPrivateCommitted
+	header2.Public = r1cs.GetNbPublicVariables()
+	header2.Witness = r1cs.GetNbSecretVariables() + r1cs.NbInternalVariables - header2.PrivateCommitted
+
+	if r1cs.CommitmentInfo.Is() { // the commitment itself is defined by a hint so the prover considers it private
+		header2.Public++  // but the verifier will need to inject the value itself so on the groth16
+		header2.Witness-- // level it must be considered public
 	}
-	// Initialize Domain, #Witness and #Public
-	header2.Domain = uint32(nextPowerofTwo(nbCons))
-	header2.Witness = uint32(r1cs.GetNbInternalVariables() + r1cs.GetNbSecretVariables())
-	header2.Public = uint32(r1cs.GetNbPublicVariables())
 
 	// Write header of phase 2
-	if err := header2.writeTo(phase2File); err != nil {
+	if err := header2.write(phase2File); err != nil {
 		return nil, nil, err
 	}
 
+	fmt.Printf("Circuit Info: #Constraints:=%d\n#Wires:=%d\n#Public:=%d\n#Witness:=%d\n#PrivateCommitted:=%d\n",
+		header2.Constraints, header2.Wires, header2.Public, header2.Witness, header2.PrivateCommitted)
 	return &header1, &header2, nil
 }
 
@@ -278,7 +274,6 @@ func processEvaluationsParted(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, ba
 
 	return nil
 }
-
 
 func processLParted(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, batchSize int, header1 *phase1.Header, header2 *Header, phase2File *os.File) error {
 	fmt.Println("Processing L")

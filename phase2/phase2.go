@@ -74,12 +74,12 @@ func Contribute(inputPath, outputPath string) error {
 
 	// Read/Write header with extra contribution
 	var header Header
-	if _, err := header.ReadFrom(inputFile); err != nil {
+	if err := header.Read(inputFile); err != nil {
 		return err
 	}
 	fmt.Printf("Current #Contributions := %d\n", header.Contributions)
 	header.Contributions++
-	if err := header.writeTo(outputFile); err != nil {
+	if err := header.write(outputFile); err != nil {
 		return err
 	}
 
@@ -195,7 +195,7 @@ func Verify(inputPath, originPath string) error {
 
 	// Read header
 	var header Header
-	if _, err := header.ReadFrom(inputFile); err != nil {
+	if err := header.Read(inputFile); err != nil {
 		return err
 	}
 	if header.Contributions == 0 {

@@ -227,7 +227,7 @@ func Verify(inputPath, originPath string) error {
 
 	// Check PKK is updated correctly from origin to the latest state
 	fmt.Println("Verifying update of PKK")
-	if err := verifyParameter(&d2, &g2, inputDec, originDec, int(curHeader.Witness), "PKK"); err != nil {
+	if err := verifyParameter(&d2, &g2, inputDec, originDec, curHeader.Witness, "PKK"); err != nil {
 		return err
 	}
 

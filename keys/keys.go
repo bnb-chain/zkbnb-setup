@@ -11,19 +11,6 @@ import (
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr/fft"
 )
 
-type VerifyingKey struct {
-	// [α]₁, [Kvk]₁
-	G1 struct {
-		Alpha, Beta, Delta bn254.G1Affine
-		K                  []bn254.G1Affine
-	}
-
-	// [β]₂, [δ]₂, [γ]₂,
-	G2 struct {
-		Beta, Delta, Gamma bn254.G2Affine
-	}
-}
-
 func extractPK(phase2Path string) error {
 	// Phase 2 file
 	phase2File, err := os.Open(phase2Path)
@@ -120,8 +107,8 @@ func extractPK(phase2Path string) error {
 	}
 
 	// 6. Read/Write Z
-	buffG1 = make([]bn254.G1Affine, int(header.Domain)-1)
-	for i := 0; i < int(header.Domain)-1; i++ {
+	buffG1 = make([]bn254.G1Affine, header.Domain-1)
+	for i := 0; i < header.Domain-1; i++ {
 		if err := decPh2.Decode(&buffG1[i]); err != nil {
 			return err
 		}
@@ -130,14 +117,9 @@ func extractPK(phase2Path string) error {
 		return err
 	}
 
-	// 7. Read/Write K (ie. private part of L)
-	pos := int64((header.Public+header.Domain-1)*32 + 96 + 18)
-	if _, err := phase2File.Seek(pos, io.SeekStart); err != nil {
-		return err
-	}
-	ph2Reader.Reset(phase2File)
-	buffG1 = make([]bn254.G1Affine, int(header.Witness))
-	for i := 0; i < int(header.Witness); i++ {
+	// 7. Read/Write PKK
+	buffG1 = make([]bn254.G1Affine, header.Witness)
+	for i := 0; i < header.Witness; i++ {
 		if err := decPh2.Decode(&buffG1[i]); err != nil {
 			return err
 		}
@@ -168,7 +150,7 @@ func extractPK(phase2Path string) error {
 	buffG2 = nil
 
 	// 11. Write nbWires
-	nbWires := uint64(header.Public + header.Witness)
+	nbWires := uint64(header.Wires)
 	if err := encPk.Encode(&nbWires); err != nil {
 		return err
 	}
@@ -281,23 +263,19 @@ func extractVK(phase2Path string) error {
 		return err
 	}
 
-	// 7. Read/Write K
-	pos := int64((header.Domain-1)*32 + 96 + 18)
-	if _, err := phase2File.Seek(pos, io.SeekStart); err != nil {
+	// 7. Read/Write VKK
+	pos := int64(128*(header.Wires+1) + 12)
+	if _, err := evalsFile.Seek(pos, io.SeekStart); err != nil {
 		return err
 	}
-	ph2Reader.Reset(phase2File)
-
-	buffG1 := make([]bn254.G1Affine, header.Public)
-	for i := 0; i < len(buffG1); i++ {
-		if err := decPh2.Decode(&buffG1[i]); err != nil {
-			return err
-		}
-	}
-	if err := encVk.Encode(buffG1); err != nil {
+	evalsReader.Reset(evalsFile)
+	var vkk []bn254.G1Affine
+	if err := decEvals.Decode(&vkk); err != nil {
 		return err
 	}
-
+	if err := encVk.Encode(vkk); err != nil {
+		return err
+	}
 	return nil
 }
 

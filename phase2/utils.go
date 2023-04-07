@@ -298,30 +298,6 @@ func processPVCKK(header1 *phase1.Header, header2 *Header, r1csPath string, phas
 		return err
 	}
 
-	pkk := make([]bn254.G1Affine, header2.Witness)
-	vkk := make([]bn254.G1Affine, header2.Public)
-	ckk := make([]bn254.G1Affine, header2.PrivateCommitted)
-	pI, vI, cI := 0, 0, 0
-
-	get := func(wireID int) *bn254.G1Affine {
-		isCommittedPrivate := cI < r1cs.CommitmentInfo.NbPrivateCommitted && wireID == r1cs.CommitmentInfo.PrivateCommitted()[wireID]
-		isCommitment := r1cs.CommitmentInfo.Is() && wireID == r1cs.CommitmentInfo.CommitmentIndex
-		isPublic := wireID < r1cs.GetNbPublicVariables()
-		var res *bn254.G1Affine
-
-		if isCommittedPrivate {
-			res = &ckk[cI]
-			cI++
-		} else if isCommitment || isPublic {
-			res = &vkk[cI]
-			vI++
-		} else {
-			res = &pkk[cI]
-			pI++
-		}
-		return res
-	}
-
 	var buffSRS []bn254.G1Affine
 	reader := bufio.NewReader(lagFile)
 	writer := bufio.NewWriter(phase2File)
@@ -329,7 +305,8 @@ func processPVCKK(header1 *phase1.Header, header2 *Header, r1csPath string, phas
 	dec := bn254.NewDecoder(reader)
 	enc := bn254.NewEncoder(writer)
 
-	// O(TauG1) + R(AlphaTauG1) + L(BetaTauG1)
+	// L = O(TauG1) + R(AlphaTauG1) + L(BetaTauG1)
+	L :=make([]bn254.G1Affine, header2.Wires)
 
 	// Deserialize Lagrange SRS TauG1
 	if err := dec.Decode(&buffSRS); err != nil {
@@ -337,9 +314,9 @@ func processPVCKK(header1 *phase1.Header, header2 *Header, r1csPath string, phas
 	}
 
 	for i, c := range r1cs.Constraints {
-		// O(Tau)
+		// Output(Tau)
 		for _, t := range c.O {
-			accumulateG1(&r1cs, get(t.WireID()), t, &buffSRS[i])
+			accumulateG1(&r1cs, &L[t.WireID()], t, &buffSRS[i])
 		}
 	}
 
@@ -348,9 +325,9 @@ func processPVCKK(header1 *phase1.Header, header2 *Header, r1csPath string, phas
 		return err
 	}
 	for i, c := range r1cs.Constraints {
-		// R(AlphaTauG1)
+		// Right(AlphaTauG1)
 		for _, t := range c.R {
-			accumulateG1(&r1cs, get(t.WireID()), t, &buffSRS[i])
+			accumulateG1(&r1cs, &L[t.WireID()], t, &buffSRS[i])
 		}
 	}
 
@@ -359,12 +336,13 @@ func processPVCKK(header1 *phase1.Header, header2 *Header, r1csPath string, phas
 		return err
 	}
 	for i, c := range r1cs.Constraints {
-		// L(BetaTauG1)
+		// Left(BetaTauG1)
 		for _, t := range c.L {
-			accumulateG1(&r1cs, get(t.WireID()), t, &buffSRS[i])
+			accumulateG1(&r1cs, &L[t.WireID()], t, &buffSRS[i])
 		}
 	}
 
+	pkk, vkk, ckk :=filterL(L, header2, &r1cs.CommitmentInfo)
 	// Write PKK
 	for i := 0; i < len(pkk); i++ {
 		if err := enc.Encode(&pkk[i]); err != nil {
@@ -562,4 +540,27 @@ func aggregate(inputDecoder, originDecoder *bn254.Decoder, size int) (*bn254.G1A
 	}
 
 	return &inG, &orG, nil
+}
+
+func filterL(L []bn254.G1Affine, header2 *Header, cmtInfo *constraint.Commitment) ([]bn254.G1Affine, []bn254.G1Affine, []bn254.G1Affine) {
+	pkk := make([]bn254.G1Affine, header2.Witness)
+	vkk := make([]bn254.G1Affine, header2.Public)
+	ckk := make([]bn254.G1Affine, header2.PrivateCommitted)
+	vI, cI := 0, 0
+	for i := range L {
+		isCommittedPrivate := cI < cmtInfo.NbPrivateCommitted && i == cmtInfo.PrivateCommitted()[i]
+		isCommitment := cmtInfo.Is() && i == cmtInfo.CommitmentIndex
+		isPublic := i < header2.Public
+		if isCommittedPrivate {
+			ckk[cI].Set(&L[i])
+			cI++
+		} else if isCommitment || isPublic {
+			vkk[vI].Set(&L[i])
+			vI++
+		} else {
+			pkk[i-cI-vI].Set(&L[i])
+		}
+	}
+
+	return pkk, vkk, ckk
 }

@@ -498,21 +498,6 @@ func verifyContribution(c *Contribution, prevDelta bn254.G1Affine, prevHash []by
 
 	return nil
 }
-func verifyEquality(inputDecoder, originDecoder *bn254.Decoder, size int) error {
-	var in, or bn254.G1Affine
-	for i := 0; i < size; i++ {
-		if err := inputDecoder.Decode(&in); err != nil {
-			return err
-		}
-		if err := originDecoder.Decode(&or); err != nil {
-			return err
-		}
-		if !in.Equal(&or) {
-			return fmt.Errorf("inequal points detected")
-		}
-	}
-	return nil
-}
 
 func verifyParameter(delta, g *bn254.G2Affine, inputDecoder, originDecoder *bn254.Decoder, size int, field string) error {
 	// aggregate points

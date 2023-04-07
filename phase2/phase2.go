@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"encoding/hex"
 	"fmt"
-	"io"
-	"math"
 	"math/big"
 	"os"
 
@@ -181,31 +179,66 @@ func Verify(inputPath, originPath string) error {
 	}
 	defer originFile.Close()
 
-	// Read header
-	var header Header
-	if err := header.Read(inputFile); err != nil {
+	inputReader := bufio.NewReader(inputFile)
+	inputDec := bn254.NewDecoder(inputReader)
+	originReader := bufio.NewReader(originFile)
+	originDec := bn254.NewDecoder(originReader)
+
+	// Read curHeader
+	var curHeader, orgHeader Header
+	if err := curHeader.Read(inputReader); err != nil {
 		return err
 	}
-	if header.Contributions == 0 {
+
+	if err := orgHeader.Read(originReader); err != nil {
+		return err
+	}
+	if curHeader.Contributions == 0 {
 		return fmt.Errorf("there are no contributions to verify")
 	}
-	fmt.Printf("#Contributions := %d\n", header.Contributions)
+	if !curHeader.Equal(&orgHeader) {
+		return fmt.Errorf("there is a mismatch between origin and curren headers for phase 2")
+	}
 
-	// Seek to contributions
-	pos := 18 + 96 + int64(header.Domain-1)*32 + int64(header.Witness+header.Public)*32
-	if _, err := inputFile.Seek(pos, io.SeekStart); err != nil {
+	// Read [δ]₁ and [δ]₂
+	var d1, g1 bn254.G1Affine
+	var d2, g2 bn254.G2Affine
+	if err := originDec.Decode(&g1); err != nil {
+		return err
+	}
+	if err := originDec.Decode(&g2); err != nil {
+		return err
+	}
+	if err := inputDec.Decode(&d1); err != nil {
+		return err
+	}
+	if err := inputDec.Decode(&d2); err != nil {
 		return err
 	}
 
-	// Use buffered IO to write parameters efficiently
-	buffSize := int(math.Pow(2, 20))
-	inputReader := bufio.NewReaderSize(inputFile, buffSize)
+	// Check δ₁ and δ₂ are consistent
+	if !common.SameRatio(g1, d1, d2, g2) {
+		return fmt.Errorf("deltaG1 and deltaG2 aren't consistent")
+	}
 
-	_, _, g1, g2 := bn254.Generators()
+	// Check Z is updated correctly from origin to the latest state
+	fmt.Println("Verifying update of Z")
+	if err := verifyParameter(&d2, &g2, inputDec, originDec, curHeader.Domain-1, "Z"); err != nil {
+		return err
+	}
+
+	// Check PKK is updated correctly from origin to the latest state
+	fmt.Println("Verifying update of PKK")
+	if err := verifyParameter(&d2, &g2, inputDec, originDec, int(curHeader.Witness), "PKK"); err != nil {
+		return err
+	}
+
+	// Verify contributions
+	fmt.Printf("#Contributions := %d\n", curHeader.Contributions)
 	var prevDelta = g1
 	var prevHash []byte = nil
 	var c Contribution
-	for i := 0; i < int(header.Contributions); i++ {
+	for i := 0; i < curHeader.Contributions; i++ {
 		if _, err := c.readFrom(inputReader); err != nil {
 			return err
 		}
@@ -217,58 +250,10 @@ func Verify(inputPath, originPath string) error {
 		prevHash = c.Hash
 	}
 
-	// Seek to Parameters
-	pos = 18
-	if _, err := inputFile.Seek(pos, io.SeekStart); err != nil {
-		return err
-	}
-
-	inputReader.Reset(inputFile)
-	inputDecoder := bn254.NewDecoder(inputReader)
-
-	fmt.Println("Verifying DeltaG1 and DeltaG2")
 	// Verify last contribution has the same delta in parameters
-	var d1 bn254.G1Affine
-	if err := inputDecoder.Decode(&d1); err != nil {
-		return err
-	}
-	if !d1.Equal(&c.Delta) {
-		return fmt.Errorf("last contribution delta isn't the same as in parameters")
-	}
-
-	var d2 bn254.G2Affine
-	if err := inputDecoder.Decode(&d2); err != nil {
-		return err
-	}
-
-	// Check δ₁ and δ₂ are consistent
-	if !common.SameRatio(g1, c.Delta, d2, g2) {
-		return fmt.Errorf("deltaG1 and deltaG2 aren't consistent")
-	}
-
-	// Seek to Z
-	pos += 32 + 64
-	if _, err := originFile.Seek(pos, io.SeekStart); err != nil {
-		return err
-	}
-	originReader := bufio.NewReaderSize(originFile, buffSize)
-	originDecoder := bn254.NewDecoder(originReader)
-
-	fmt.Println("Verifying update of Z")
-	// Check Z is updated correctly from origin to the latest state
-	if err := verifyParameter(&d2, &g2, inputDecoder, originDecoder, int(header.Domain-1), "Z"); err != nil {
-		return err
-	}
-
-	// Check equal public part of L
-	fmt.Println("Verifying equality of public part of L")
-	if err := verifyEquality(inputDecoder, originDecoder, int(header.Public)); err != nil {
-		return err
-	}
-	fmt.Println("Verifying update of witness part of L")
-	// Check L is updated correctly from origin to the latest state
-	if err := verifyParameter(&d2, &g2, inputDecoder, originDecoder, int(header.Witness), "L"); err != nil {
-		return err
+	fmt.Println("Verifying Delta of last contribution")
+	if !c.Delta.Equal(&d1) {
+		return fmt.Errorf("delta of last contribution delta isn't the same as in parameters")
 	}
 
 	fmt.Println("Contributions verification has been successful")

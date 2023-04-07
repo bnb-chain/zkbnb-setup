@@ -42,7 +42,6 @@ func InitializeFromPartedR1CS(phase1Path, r1csPrefix, phase2Path string, nbCons,
 	}
 
 	// 1. Process Headers
-	// TODO: we just need the nbConstraints from r1cs not the whole thing
 	header1, header2, err := processHeaderParted(&r1cs, nbCons, phase1File, phase2File)
 	if err != nil {
 		return err
@@ -53,7 +52,7 @@ func InitializeFromPartedR1CS(phase1Path, r1csPrefix, phase2Path string, nbCons,
 		return err
 	}
 
-	// 3. Evaluate A, B, C
+	// 3. Process evaluation
 	if err := processEvaluationsParted(&r1cs, r1csPrefix, nbCons, batchSize, header1, header2, phase1File); err != nil {
 		return err
 	}
@@ -63,8 +62,8 @@ func InitializeFromPartedR1CS(phase1Path, r1csPrefix, phase2Path string, nbCons,
 		return err
 	}
 
-	// // Evaluate L
-	if err := processLParted(&r1cs, r1csPrefix, nbCons, batchSize, header1, header2, phase2File); err != nil {
+	// Process parameters
+	if err := processPVCKKParted(&r1cs, r1csPrefix, nbCons, batchSize, header1, header2, phase2File); err != nil {
 		return err
 	}
 
@@ -149,7 +148,6 @@ func processEvaluationsParted(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, ba
 		return err
 	}
 
-	nWires := header2.Witness + header2.Public
 	var tauG1 []bn254.G1Affine
 
 	// Deserialize Lagrange SRS TauG1
@@ -158,7 +156,7 @@ func processEvaluationsParted(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, ba
 	}
 
 	// Accumlate {[A]₁}
-	buff := make([]bn254.G1Affine, nWires)
+	buff := make([]bn254.G1Affine, header2.Wires)
 	for i := 0; i < nbCons; {
 		fmt.Println("processing", i, "/", nbCons)
 		// read R1C[i, min(i+batchSize, end)]
@@ -192,7 +190,7 @@ func processEvaluationsParted(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, ba
 	}
 
 	// Reset buff
-	buff = make([]bn254.G1Affine, nWires)
+	buff = make([]bn254.G1Affine, header2.Wires)
 	// Accumlate {[B]₁}
 	for i := 0; i < nbCons; {
 		fmt.Println("processing", i, "/", nbCons)
@@ -227,7 +225,7 @@ func processEvaluationsParted(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, ba
 	}
 
 	var tauG2 []bn254.G2Affine
-	buff2 := make([]bn254.G2Affine, nWires)
+	buff2 := make([]bn254.G2Affine, header2.Wires)
 
 	// Seek to Lagrange SRS TauG2 by skipping AlphaTau and BetaTau
 	pos = 2*32*int64(header2.Domain) + 2*4
@@ -275,7 +273,7 @@ func processEvaluationsParted(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, ba
 	return nil
 }
 
-func processLParted(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, batchSize int, header1 *phase1.Header, header2 *Header, phase2File *os.File) error {
+func processPVCKKParted(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, batchSize int, header1 *phase1.Header, header2 *Header, phase2File *os.File) error {
 	fmt.Println("Processing L")
 	lagFile, err := os.Open("srs.lag")
 	if err != nil {
@@ -345,11 +343,36 @@ func processLParted(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, batchSize in
 		i = iNew
 	}
 
-	// Write L
-	for i := 0; i < len(L); i++ {
-		if err := enc.Encode(&L[i]); err != nil {
+	pkk, vkk, ckk :=filterL(L, header2, &r1cs.CommitmentInfo)
+	// Write PKK
+	for i := 0; i < len(pkk); i++ {
+		if err := enc.Encode(&pkk[i]); err != nil {
 			return err
 		}
+	}
+
+	// VKK
+	evalFile, err := os.OpenFile("evals", os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer evalFile.Close()
+	evalWriter := bufio.NewWriter(evalFile)
+	defer evalWriter.Flush()
+	evalEnc := bn254.NewEncoder(evalWriter)
+	if err := evalEnc.Encode(vkk); err != nil {
+		return err
+	}
+
+	// Write CKK
+	if err := evalEnc.Encode(ckk); err != nil {
+		return err
+	}
+
+	// Write CommitmentInfo
+	cmtEnc := gob.NewEncoder(evalWriter)
+	if err := cmtEnc.Encode(r1cs.CommitmentInfo); err != nil {
+		return err
 	}
 	return nil
 }

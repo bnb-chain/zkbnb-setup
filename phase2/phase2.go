@@ -83,9 +83,8 @@ func Contribute(inputPath, outputPath string) error {
 		return err
 	}
 
-	buffSize := int(math.Pow(2, 20))
-	reader := bufio.NewReaderSize(inputFile, buffSize)
-	writer := bufio.NewWriterSize(outputFile, buffSize)
+	reader := bufio.NewReader(inputFile)
+	writer := bufio.NewWriter(outputFile)
 	defer writer.Flush()
 
 	dec := bn254.NewDecoder(reader)
@@ -128,18 +127,7 @@ func Contribute(inputPath, outputPath string) error {
 		return err
 	}
 
-	// Copy public part of L as-is
-	var tmpPublic bn254.G1Affine
-	for i := 0; i < int(header.Public); i++ {
-		if err := dec.Decode(&tmpPublic); err != nil {
-			return err
-		}
-		if err := enc.Encode(&tmpPublic); err != nil {
-			return err
-		}
-	}
-
-	// Process private part of L using δ⁻¹
+	// Process PKK using δ⁻¹
 	if err = scale(dec, enc, int(header.Witness), &deltaInvBI); err != nil {
 		return err
 	}

@@ -29,12 +29,13 @@
     }
 
 
-
 # Phase 2 File Format for *.ph2
-    Header                      <18 bytes>
+    Header                      <Gob>
     {
+        #Wires                  <4  bytes>
         #Witness                <4  bytes>
         #Public                 <4  bytes>
+        #PrivateCommitted       <4  bytes>
         #Constraints            <4  bytes>
         #Domain                 <4  bytes>
         #Contributions          <2  bytes>
@@ -42,8 +43,7 @@
     Parameters {
         [δ]₁                    <32 bytes>
         [δ]₂                    <64 bytes>
-        Z                       <32(#Domain-1) bytes>
-        L                       <32(#Public + #Witness) bytes>
+        PKK                     <32(#Witness) bytes>
     }
     Contributions
     {
@@ -78,7 +78,11 @@ The main objective is to reduce the storage/bandwidth cost for phase 2 contribut
         [α]₁                    <32 bytes>
         [β]₁                    <32 bytes>
         [β]₂                    <64 bytes>
-        [A]₁                    <32(#Witness+#Public)+4 bytes>
-        [B]₁                    <32(#Witness+#Public)+4 bytes>
-        [B]₂                    <64(#Witness+#Public)+4 bytes>
+        [A]₁                    <32(#Wires)+4 bytes>
+        [B]₁                    <32(#Wires)+4 bytes>
+        [B]₂                    <64(#Wires)+4 bytes>
+        Z                       <32(#Domain-1)+4 bytes>
+        VKK                     <32(#Public)+4 bytes>
+        CKK                     <32(#PrivateCommitted)+4 bytes>
+        CmtInfo                 <Gob>
     }

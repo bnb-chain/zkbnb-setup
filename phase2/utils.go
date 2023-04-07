@@ -160,7 +160,6 @@ func processEvaluations(header1 *phase1.Header, header2 *Header, r1csPath string
 		return err
 	}
 
-	nWires := header2.Witness + header2.Public
 	var tauG1 []bn254.G1Affine
 
 	// Read R1CS File
@@ -181,7 +180,7 @@ func processEvaluations(header1 *phase1.Header, header2 *Header, r1csPath string
 	}
 
 	// Accumlate {[A]₁}
-	buff := make([]bn254.G1Affine, nWires)
+	buff := make([]bn254.G1Affine, header2.Wires)
 	for i, c := range r1cs.Constraints {
 		for _, t := range c.L {
 			accumulateG1(&r1cs, &buff[t.WireID()], t, &tauG1[i])
@@ -193,7 +192,7 @@ func processEvaluations(header1 *phase1.Header, header2 *Header, r1csPath string
 	}
 
 	// Reset buff
-	buff = make([]bn254.G1Affine, nWires)
+	buff = make([]bn254.G1Affine, header2.Wires)
 	// Accumlate {[B]₁}
 	for i, c := range r1cs.Constraints {
 		for _, t := range c.R {
@@ -206,7 +205,7 @@ func processEvaluations(header1 *phase1.Header, header2 *Header, r1csPath string
 	}
 
 	var tauG2 []bn254.G2Affine
-	buff2 := make([]bn254.G2Affine, nWires)
+	buff2 := make([]bn254.G2Affine, header2.Wires)
 
 	// Seek to Lagrange SRS TauG2 by skipping AlphaTau and BetaTau
 	pos = 2*32*int64(header2.Domain) + 2*4
@@ -309,17 +308,19 @@ func processPVCKK(header1 *phase1.Header, header2 *Header, r1csPath string, phas
 		isCommittedPrivate := cI < r1cs.CommitmentInfo.NbPrivateCommitted && wireID == r1cs.CommitmentInfo.PrivateCommitted()[wireID]
 		isCommitment := r1cs.CommitmentInfo.Is() && wireID == r1cs.CommitmentInfo.CommitmentIndex
 		isPublic := wireID < r1cs.GetNbPublicVariables()
+		var res *bn254.G1Affine
 
 		if isCommittedPrivate {
+			res = &ckk[cI]
 			cI++
-			return &ckk[cI-1]
 		} else if isCommitment || isPublic {
+			res = &vkk[cI]
 			vI++
-			return &vkk[vI-1]
 		} else {
+			res = &pkk[cI]
 			pI++
-			return &pkk[pI-1]
 		}
+		return res
 	}
 
 	var buffSRS []bn254.G1Affine

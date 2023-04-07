@@ -44,7 +44,7 @@ func extractPK(phase2Path string) error {
 	evalsReader := bufio.NewReader(evalsFile)
 
 	var header phase2.Header
-	if _, err := header.ReadFrom(ph2Reader); err != nil {
+	if err := header.Read(ph2Reader); err != nil {
 		return err
 	}
 
@@ -216,7 +216,7 @@ func extractVK(phase2Path string) error {
 	evalsReader := bufio.NewReader(evalsFile)
 
 	var header phase2.Header
-	if _, err := header.ReadFrom(ph2Reader); err != nil {
+	if err := header.Read(ph2Reader); err != nil {
 		return err
 	}
 

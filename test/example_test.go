@@ -52,7 +52,7 @@ func TestSetup(t *testing.T) {
 	defer writer.Close()
 	ccs.WriteTo(writer)
 
-	var power byte = 12
+	var power byte = 9
 
 	// Initialize to Phase 1
 	if err := phase1.Initialize(power, "0.ph1"); err != nil {
@@ -101,11 +101,10 @@ func TestSetup(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err := keys.ExtractKeys("3.ph2"); err != nil {
-		t.Error(err)
-	}
+	// if err := keys.ExtractKeys("3.ph2"); err != nil {
+	// 	t.Error(err)
+	// }
 }
-
 
 func TestKeys(t *testing.T) {
 	if err := keys.ExtractKeys("3.ph2"); err != nil {

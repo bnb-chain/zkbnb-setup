@@ -37,7 +37,7 @@ func Initialize(power byte, outputPath string) error {
 	defer writer.Flush()
 
 	// BN254 encoder using compressed representation of points to save storage space
-	enc := bn254.NewEncoder(writer)
+	enc := bn254.NewEncoder(writer, bn254.RawEncoding())
 
 	// In the initialization, τ = α = β = 1, so we are writing the generators directly
 	// Write [τ⁰]₁, [τ¹]₁, [τ²]₁, …, [τ²ᴺ⁻²]₁
@@ -114,7 +114,7 @@ func Contribute(inputPath, outputPath string) error {
 	defer writer.Flush()
 
 	dec := bn254.NewDecoder(reader)
-	enc := bn254.NewEncoder(writer)
+	enc := bn254.NewEncoder(writer, bn254.RawEncoding())
 
 	// Sample toxic parameters
 	fmt.Println("Sampling toxic parameters Tau, Alpha, and Beta")

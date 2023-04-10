@@ -25,3 +25,7 @@ require (
 	golang.org/x/sys v0.5.0 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
+
+replace github.com/consensys/gnark => ../gnark
+
+replace github.com/consensys/gnark-crypto => ../gnark-crypto

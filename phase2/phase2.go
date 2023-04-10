@@ -89,7 +89,7 @@ func Contribute(inputPath, outputPath string) error {
 	defer writer.Flush()
 
 	dec := bn254.NewDecoder(reader)
-	enc := bn254.NewEncoder(writer)
+	enc := bn254.NewEncoder(writer, bn254.RawEncoding())
 
 	// Sample toxic parameters
 	fmt.Println("Sampling toxic parameters Delta")
@@ -204,8 +204,9 @@ func Verify(inputPath, originPath string) error {
 	fmt.Printf("#Contributions := %d\n", header.Contributions)
 
 	// Seek to contributions
-	pos := 18 + 96 + int64(header.Domain-1)*32 + int64(header.Witness+header.Public)*32
+	pos := 18 + 192 + int64(header.Domain-1)*64 + int64(header.Witness+header.Public)*64
 	if _, err := inputFile.Seek(pos, io.SeekStart); err != nil {
+		panic(err)
 		return err
 	}
 
@@ -259,7 +260,7 @@ func Verify(inputPath, originPath string) error {
 	}
 
 	// Seek to Z
-	pos += 32 + 64
+	pos += 64 + 128
 	if _, err := originFile.Seek(pos, io.SeekStart); err != nil {
 		return err
 	}

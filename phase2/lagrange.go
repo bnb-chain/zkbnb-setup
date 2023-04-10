@@ -19,7 +19,7 @@ func lagrangeG1(phase1File, lagFile *os.File, position int64, domain *fft.Domain
 	writer := bufio.NewWriter(lagFile)
 	defer writer.Flush()
 	dec := bn254.NewDecoder(reader)
-	enc := bn254.NewEncoder(writer)
+	enc := bn254.NewEncoder(writer, bn254.RawEncoding())
 
 	size := int(domain.Cardinality)
 	buff := make([]bn254.G1Affine, size)
@@ -47,7 +47,7 @@ func lagrangeG2(phase1File, lagFile *os.File, position int64, domain *fft.Domain
 	writer := bufio.NewWriter(lagFile)
 	defer writer.Flush()
 	dec := bn254.NewDecoder(reader)
-	enc := bn254.NewEncoder(writer)
+	enc := bn254.NewEncoder(writer, bn254.RawEncoding())
 
 	size := int(domain.Cardinality)
 	buff := make([]bn254.G2Affine, size)

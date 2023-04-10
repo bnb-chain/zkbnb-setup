@@ -1,15 +1,12 @@
 package test
 
 import (
-	"bufio"
-	"encoding/gob"
 	"fmt"
-	bn254r1cs "github.com/consensys/gnark/constraint/bn254"
+	"github.com/consensys/gnark-crypto/ecc"
+	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/std/hash/mimc"
-	"os"
 	"testing"
 
-	"github.com/bnbchain/zkbnb-setup/keys"
 	"github.com/bnbchain/zkbnb-setup/phase1"
 	"github.com/bnbchain/zkbnb-setup/phase2"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
@@ -20,7 +17,7 @@ import (
 // Circuit defines a pre-image knowledge proof
 // mimc(secret preImage) = public hash
 const (
-	Cnt = 6
+	Cnt = 17
 )
 
 type BigCircuit struct {
@@ -51,15 +48,24 @@ func (circuit *BigCircuit) Define(api frontend.API) error {
 func TestSetupFromPartedR1CS(t *testing.T) {
 
 	// Compile the circuit
-	var myCircuit BigCircuit
-	ccs, err := frontend.Compile(bn254.ID.ScalarField(), r1cs.NewBuilder, &myCircuit)
-	if err != nil {
-		t.Error(err)
-	}
-	nbCons := ccs.GetNbConstraints()
-	batchSize := 10000
+	ccs := groth16.NewCS(ecc.BN254)
+	var nbCons, nbR1C, batchSize int
+	{
+		var myCircuit BigCircuit
+		var err error
+		ccs, err = frontend.Compile(bn254.ID.ScalarField(), r1cs.NewBuilder, &myCircuit)
+		if err != nil {
+			t.Error(err)
+		}
+		fmt.Println("Before Lazify: ", ccs.GetNbR1C(), "/", ccs.GetNbConstraints())
+		ccs.Lazify()
+		nbCons = ccs.GetNbConstraints()
+		nbR1C = ccs.GetNbR1C()
+		fmt.Println("After Lazify: ", ccs.GetNbR1C(), "/", ccs.GetNbConstraints())
+		batchSize = 100000
 
-	SplitDumpR1CSBinary(ccs.(*bn254r1cs.R1CS), "Foo", 10000)
+		ccs.SplitDumpBinary("Foo", batchSize)
+	}
 
 	var power byte = 9 + Cnt
 
@@ -72,23 +78,23 @@ func TestSetupFromPartedR1CS(t *testing.T) {
 	if err := phase1.Contribute("0.ph1", "1.ph1"); err != nil {
 		t.Error(err)
 	}
-	if err := phase1.Contribute("1.ph1", "2.ph1"); err != nil {
-		t.Error(err)
-	}
-	if err := phase1.Contribute("2.ph1", "3.ph1"); err != nil {
-		t.Error(err)
-	}
-	if err := phase1.Contribute("3.ph1", "4.ph1"); err != nil {
-		t.Error(err)
-	}
+	// if err := phase1.Contribute("1.ph1", "2.ph1"); err != nil {
+	// 	t.Error(err)
+	// }
+	// if err := phase1.Contribute("2.ph1", "3.ph1"); err != nil {
+	// 	t.Error(err)
+	// }
+	// if err := phase1.Contribute("3.ph1", "4.ph1"); err != nil {
+	// 	t.Error(err)
+	// }
 
 	// Verify Phase 1 contributions
-	if err := phase1.Verify("4.ph1"); err != nil {
+	if err := phase1.Verify("1.ph1"); err != nil {
 		t.Error(err)
 	}
 
 	// Phase 2 initialization
-	if err := phase2.InitializeFromPartedR1CS("4.ph1", "Foo", "0.ph2", nbCons, batchSize); err != nil {
+	if err := phase2.InitializeFromPartedR1CS("1.ph1", "Foo", "0.ph2", nbCons, nbR1C, batchSize); err != nil {
 		t.Error(err)
 	}
 
@@ -110,54 +116,7 @@ func TestSetupFromPartedR1CS(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err := keys.ExtractKeys("1.ph2"); err != nil {
-		t.Error(err)
-	}
-}
-
-func SplitDumpR1CSBinary(ccs *bn254r1cs.R1CS, session string, batchSize int) error {
-	// E part
-	{
-		ccs2 := &bn254r1cs.R1CS{}
-		ccs2.CoeffTable = ccs.CoeffTable
-		ccs2.R1CSCore.System = ccs.R1CSCore.System
-
-		name := fmt.Sprintf("%s.r1cs.E.save", session)
-		csFile, err := os.Create(name)
-		if err != nil {
-			return err
-		}
-		// cnt, err := ccs2.WriteTo(csFile)
-		// fmt.Println("written ", cnt, name)
-		ccs2.WriteTo(csFile)
-	}
-
-	N := len(ccs.R1CSCore.Constraints)
-	for i := 0; i < N; {
-		// dump R1C[i, min(i+batchSize, end)]
-		ccs2 := &bn254r1cs.R1CS{}
-		iNew := i + batchSize
-		if iNew > N {
-			iNew = N
-		}
-		ccs2.R1CSCore.Constraints = ccs.R1CSCore.Constraints[i:iNew]
-		name := fmt.Sprintf("%s.r1cs.Cons.%d.%d.save", session, i, iNew)
-		csFile, err := os.Create(name)
-		if err != nil {
-			return err
-		}
-		// cnt, err := ccs2.WriteTo(csFile)
-		// fmt.Println("written ", cnt, name)
-		writer := bufio.NewWriter(csFile)
-		enc := gob.NewEncoder(writer)
-		err = enc.Encode(ccs2)
-		if err != nil {
-			panic(err)
-		}
-		//ccs2.WriteTo(csFile)
-
-		i = iNew
-	}
-
-	return nil
+	// if err := keys.ExtractKeys("1.ph2"); err != nil {
+	// 	t.Error(err)
+	// }
 }

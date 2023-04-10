@@ -7,7 +7,8 @@ import (
 	"github.com/bnbchain/zkbnb-setup/common"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 )
-const ContributionSize = 640
+
+const ContributionSize = 1248
 
 type Contribution struct {
 	G1 struct {
@@ -40,7 +41,7 @@ func (c *Contribution) writeTo(writer io.Writer) (int64, error) {
 		&c.PublicKeys.Beta.SPX,
 	}
 
-	enc := bn254.NewEncoder(writer)
+	enc := bn254.NewEncoder(writer, bn254.RawEncoding())
 	for _, v := range toEncode {
 		if err := enc.Encode(v); err != nil {
 			return enc.BytesWritten(), err
@@ -98,7 +99,7 @@ func computeHash(c *Contribution) []byte {
 		&c.PublicKeys.Beta.SPX,
 	}
 
-	enc := bn254.NewEncoder(sha)
+	enc := bn254.NewEncoder(sha, bn254.RawEncoding())
 	for _, v := range toEncode {
 		enc.Encode(v)
 	}

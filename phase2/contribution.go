@@ -22,7 +22,7 @@ func (c *Contribution) writeTo(writer io.Writer) (int64, error) {
 		&c.PublicKey.SPX,
 	}
 
-	enc := bn254.NewEncoder(writer)
+	enc := bn254.NewEncoder(writer, bn254.RawEncoding())
 	for _, v := range toEncode {
 		if err := enc.Encode(v); err != nil {
 			return enc.BytesWritten(), err
@@ -60,7 +60,7 @@ func computeHash(c *Contribution) []byte {
 		&c.PublicKey.SPX,
 	}
 
-	enc := bn254.NewEncoder(sha)
+	enc := bn254.NewEncoder(sha, bn254.RawEncoding())
 	for _, v := range toEncode {
 		enc.Encode(v)
 	}

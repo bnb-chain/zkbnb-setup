@@ -91,21 +91,21 @@ func processLagrange(header1 *phase1.Header, header2 *Header, phase1File, phase2
 	}
 	// AlphaTauG1
 	fmt.Println("Converting AlphaTauG1")
-	pos += 32 * (2*int64(N) - 1)
+	pos += 64 * (2*int64(N) - 1)
 	if err := lagrangeG1(phase1File, lagFile, pos, domain); err != nil {
 		return err
 	}
 
 	// BetaTauG1
 	fmt.Println("Converting BetaTauG1")
-	pos += 32 * int64(N)
+	pos += 64 * int64(N)
 	if err := lagrangeG1(phase1File, lagFile, pos, domain); err != nil {
 		return err
 	}
 
 	// TauG2
 	fmt.Println("Converting TauG2")
-	pos += 32 * int64(N)
+	pos += 64 * int64(N)
 	if err := lagrangeG2(phase1File, lagFile, pos, domain); err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func processLagrange(header1 *phase1.Header, header2 *Header, phase1File, phase2
 	return nil
 }
 
-func processEvaluations(header1 *phase1.Header, header2 *Header,r1csPath string, phase1File *os.File) error {
+func processEvaluations(header1 *phase1.Header, header2 *Header, r1csPath string, phase1File *os.File) error {
 	fmt.Println("Processing evaluation of [A]₁, [B]₁, [B]₂")
 
 	lagFile, err := os.Open("srs.lag")
@@ -130,7 +130,7 @@ func processEvaluations(header1 *phase1.Header, header2 *Header,r1csPath string,
 
 	// Read [α]₁ , [β]₁ , [β]₂  from phase1 last contribution (Check Phase 1 file format for reference)
 	N := int(math.Pow(2, float64(header1.Power)))
-	pos := 35 + 192*int64(N) + int64((header1.Contributions-1)*640)
+	pos := 67 + 384*int64(N) + int64((header1.Contributions-1)*phase1.ContributionSize)
 	if _, err := phase1File.Seek(pos, io.SeekStart); err != nil {
 		return err
 	}
@@ -140,7 +140,7 @@ func processEvaluations(header1 *phase1.Header, header2 *Header,r1csPath string,
 	}
 
 	// Write [α]₁ , [β]₁ , [β]₂
-	enc := bn254.NewEncoder(evalFile)
+	enc := bn254.NewEncoder(evalFile, bn254.RawEncoding())
 	if err := enc.Encode(&c1.G1.Alpha); err != nil {
 		return err
 	}
@@ -200,7 +200,7 @@ func processEvaluations(header1 *phase1.Header, header2 *Header,r1csPath string,
 	buff2 := make([]bn254.G2Affine, nWires)
 
 	// Seek to Lagrange SRS TauG2 by skipping AlphaTau and BetaTau
-	pos = 2*32*int64(header2.Domain) + 2*4
+	pos = 2*64*int64(header2.Domain) + 2*4
 	if _, err := lagFile.Seek(pos, io.SeekCurrent); err != nil {
 		return err
 	}
@@ -229,7 +229,7 @@ func processDeltaAndZ(header1 *phase1.Header, header2 *Header, phase1File, phase
 	writer := bufio.NewWriter(phase2File)
 	defer writer.Flush()
 	dec := bn254.NewDecoder(reader)
-	enc := bn254.NewEncoder(writer)
+	enc := bn254.NewEncoder(writer, bn254.RawEncoding())
 
 	// Write [δ]₁ and [δ]₂
 	_, _, g1, g2 := bn254.Generators()
@@ -297,7 +297,7 @@ func processL(header1 *phase1.Header, header2 *Header, r1csPath string, phase2Fi
 	writer := bufio.NewWriter(phase2File)
 	defer writer.Flush()
 	dec := bn254.NewDecoder(reader)
-	enc := bn254.NewEncoder(writer)
+	enc := bn254.NewEncoder(writer, bn254.RawEncoding())
 
 	// L =  Output(TauG1) + Right(AlphaTauG1) + Left(BetaTauG1)
 	L := make([]bn254.G1Affine, nWires)

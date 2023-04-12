@@ -4,11 +4,13 @@ import (
 	"os"
 	"testing"
 
+	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/std/hash/mimc"
 
 	"github.com/bnbchain/zkbnb-setup/keys"
 	"github.com/bnbchain/zkbnb-setup/phase1"
 	"github.com/bnbchain/zkbnb-setup/phase2"
+	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
@@ -106,8 +108,36 @@ func TestSetup(t *testing.T) {
 	}
 }
 
-func TestKeys(t *testing.T) {
-	if err := keys.ExtractKeys("3.ph2"); err != nil {
-		t.Error(err)
+func TestProveAndVerify(t *testing.T) {
+	// Compile the circuit
+	var myCircuit Circuit
+	ccs, _ := frontend.Compile(bn254.ID.ScalarField(), r1cs.NewBuilder, &myCircuit)
+
+	// Read PK and VK
+	pkk := groth16.NewProvingKey(ecc.BN254)
+	pkFile, _ := os.Open("pk")
+	defer pkFile.Close()
+	vkFile, _ := os.Open("vk")
+	defer vkFile.Close()
+	pkk.ReadFrom(pkFile)
+	vkk := groth16.NewVerifyingKey(ecc.BN254)
+	vkk.ReadFrom(vkFile)
+
+	assignment := &Circuit{
+		PreImage: "16130099170765464552823636852555369511329944820189892919423002775646948828469",
+		Hash:     "12886436712380113721405259596386800092738845035233065858332878701083870690753",
+	}
+	witness, _ := frontend.NewWitness(assignment, bn254.ID.ScalarField())
+	prf, err := groth16.Prove(ccs, pkk, witness)
+	if err != nil {
+		panic(err)
+	}
+	pubWitness, err := witness.Public()
+	if err != nil {
+		panic(err)
+	}
+	err = groth16.Verify(prf, vkk, pubWitness)
+	if err != nil {
+		panic(err)
 	}
 }

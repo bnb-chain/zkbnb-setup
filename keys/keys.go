@@ -2,6 +2,7 @@ package keys
 
 import (
 	"bufio"
+	"encoding/gob"
 	"fmt"
 	"io"
 	"os"
@@ -9,7 +10,63 @@ import (
 	"github.com/bnbchain/zkbnb-setup/phase2"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr/fft"
+	"github.com/consensys/gnark-crypto/ecc/bn254/fr/pedersen"
+	"github.com/consensys/gnark/constraint"
 )
+
+type VerifyingKey struct {
+	G1 struct {
+		Alpha       bn254.G1Affine
+		Beta, Delta bn254.G1Affine   // unused, here for compatibility purposes
+		K           []bn254.G1Affine // The indexes correspond to the public wires
+	}
+
+	G2 struct {
+		Beta, Delta, Gamma bn254.G2Affine
+	}
+
+	CommitmentKey  pedersen.Key
+	CommitmentInfo constraint.Commitment // since the verifier doesn't input a constraint system, this needs to be provided here
+}
+
+func (vk *VerifyingKey) writeTo(w io.Writer) (int64, error) {
+	n, err := vk.CommitmentKey.WriteTo(w)
+	if err != nil {
+		return n, err
+	}
+	enc := bn254.NewEncoder(w, bn254.RawEncoding())
+
+	// [α]1,[β]1,[β]2,[γ]2,[δ]1,[δ]2
+	if err := enc.Encode(&vk.G1.Alpha); err != nil {
+		return n + enc.BytesWritten(), err
+	}
+	if err := enc.Encode(&vk.G1.Beta); err != nil {
+		return n + enc.BytesWritten(), err
+	}
+	if err := enc.Encode(&vk.G2.Beta); err != nil {
+		return n + enc.BytesWritten(), err
+	}
+	if err := enc.Encode(&vk.G2.Gamma); err != nil {
+		return n + enc.BytesWritten(), err
+	}
+	if err := enc.Encode(&vk.G1.Delta); err != nil {
+		return n + enc.BytesWritten(), err
+	}
+	if err := enc.Encode(&vk.G2.Delta); err != nil {
+		return n + enc.BytesWritten(), err
+	}
+
+	// uint32(len(Kvk)),[Kvk]1
+	if err := enc.Encode(vk.G1.K); err != nil {
+		return n + enc.BytesWritten(), err
+	}
+
+	encGob := gob.NewEncoder(w)
+	if err := encGob.Encode(vk.CommitmentInfo); err != nil {
+		return n + enc.BytesWritten(), err
+	}
+	return n + enc.BytesWritten(), nil
+}
 
 func extractPK(phase2Path string) error {
 	// Phase 2 file
@@ -179,6 +236,7 @@ func extractPK(phase2Path string) error {
 }
 
 func extractVK(phase2Path string) error {
+	vk := VerifyingKey{}
 	// Phase 2 file
 	phase2File, err := os.Open(phase2Path)
 	if err != nil {
@@ -212,68 +270,56 @@ func extractVK(phase2Path string) error {
 	defer vkFile.Close()
 	vkWriter := bufio.NewWriter(vkFile)
 	defer vkWriter.Flush()
-	encVk := bn254.NewEncoder((vkWriter))
 
-	var alphaG1, betaG1, deltaG1 bn254.G1Affine
-	var betaG2, deltaG2 bn254.G2Affine
-
-	// 1. Read/Write [α]₁
-	if err := decEvals.Decode(&alphaG1); err != nil {
-		return err
-	}
-	if err := encVk.Encode(&alphaG1); err != nil {
+	// 1. Read [α]₁
+	if err := decEvals.Decode(&vk.G1.Alpha); err != nil {
 		return err
 	}
 
-	// 2. Read/Write [β]₁
-	if err := decEvals.Decode(&betaG1); err != nil {
-		return err
-	}
-	if err := encVk.Encode(&betaG1); err != nil {
+	// 2. Read [β]₁
+	if err := decEvals.Decode(&vk.G1.Beta); err != nil {
 		return err
 	}
 
-	// 3. Read/write [β]₂
-	if err := decEvals.Decode(&betaG2); err != nil {
-		return err
-	}
-	if err := encVk.Encode(&betaG2); err != nil {
+	// 3. Read [β]₂
+	if err := decEvals.Decode(&vk.G2.Beta); err != nil {
 		return err
 	}
 
-	// 4. Read/Write [γ]₂
+	// 4. Set [γ]₂
 	_, _, _, gammaG2 := bn254.Generators()
-	if err := encVk.Encode(&gammaG2); err != nil {
+	vk.G2.Gamma.Set(&gammaG2)
+
+	// 5. Read [δ]₁
+	if err := decPh2.Decode(&vk.G1.Delta); err != nil {
 		return err
 	}
 
-	// 5. Read/Write [δ]₁
-	if err := decPh2.Decode(&deltaG1); err != nil {
-		return err
-	}
-	if err := encVk.Encode(&deltaG1); err != nil {
+	// 6. Read [δ]₂
+	if err := decPh2.Decode(&vk.G2.Delta); err != nil {
 		return err
 	}
 
-	// 6. Read/Write [δ]₂
-	if err := decPh2.Decode(&deltaG2); err != nil {
-		return err
-	}
-	if err := encVk.Encode(&deltaG2); err != nil {
-		return err
-	}
-
-	// 7. Read/Write VKK
+	// 7. Read VKK
 	pos := int64(128*(header.Wires+1) + 12)
 	if _, err := evalsFile.Seek(pos, io.SeekStart); err != nil {
 		return err
 	}
 	evalsReader.Reset(evalsFile)
-	var vkk []bn254.G1Affine
-	if err := decEvals.Decode(&vkk); err != nil {
+	if err := decEvals.Decode(&vk.G1.K); err != nil {
 		return err
 	}
-	if err := encVk.Encode(vkk); err != nil {
+
+	// 8. Setup commitment key
+	var ckk []bn254.G1Affine
+	if err := decEvals.Decode(&ckk); err != nil {
+		return err
+	}
+	vk.CommitmentKey, err = pedersen.Setup(ckk)
+	if err != nil {
+		return err
+	}
+	if _, err := vk.writeTo(vkWriter); err != nil {
 		return err
 	}
 	return nil

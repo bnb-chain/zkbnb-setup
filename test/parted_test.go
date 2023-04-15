@@ -1,12 +1,13 @@
 package test
 
 import (
-	"bufio"
-	"encoding/gob"
 	"fmt"
-	bn254r1cs "github.com/consensys/gnark/constraint/bn254"
+	"github.com/consensys/gnark-crypto/ecc"
+	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/std/hash/mimc"
+	"github.com/stretchr/testify/assert"
 	"os"
+	"runtime"
 	"testing"
 
 	"github.com/bnbchain/zkbnb-setup/keys"
@@ -20,7 +21,7 @@ import (
 // Circuit defines a pre-image knowledge proof
 // mimc(secret preImage) = public hash
 const (
-	Cnt = 6
+	Cnt = 3
 )
 
 type BigCircuit struct {
@@ -51,15 +52,24 @@ func (circuit *BigCircuit) Define(api frontend.API) error {
 func TestSetupFromPartedR1CS(t *testing.T) {
 
 	// Compile the circuit
-	var myCircuit BigCircuit
-	ccs, err := frontend.Compile(bn254.ID.ScalarField(), r1cs.NewBuilder, &myCircuit)
-	if err != nil {
-		t.Error(err)
-	}
-	nbCons := ccs.GetNbConstraints()
-	batchSize := 10000
+	ccs := groth16.NewCS(ecc.BN254)
+	var nbCons, nbR1C, batchSize int
+	{
+		var myCircuit BigCircuit
+		var err error
+		ccs, err = frontend.Compile(bn254.ID.ScalarField(), r1cs.NewBuilder, &myCircuit)
+		if err != nil {
+			t.Error(err)
+		}
+		fmt.Println("Before Lazify: ", ccs.GetNbR1C(), "/", ccs.GetNbConstraints())
+		ccs.Lazify()
+		nbCons = ccs.GetNbConstraints()
+		nbR1C = ccs.GetNbR1C()
+		fmt.Println("After Lazify: ", ccs.GetNbR1C(), "/", ccs.GetNbConstraints())
+		batchSize = 100000
 
-	SplitDumpR1CSBinary(ccs.(*bn254r1cs.R1CS), "Foo", 10000)
+		ccs.SplitDumpBinary("Foo", batchSize)
+	}
 
 	var power byte = 9 + Cnt
 
@@ -88,7 +98,7 @@ func TestSetupFromPartedR1CS(t *testing.T) {
 	}
 
 	// Phase 2 initialization
-	if err := phase2.InitializeFromPartedR1CS("4.ph1", "Foo", "0.ph2", nbCons, batchSize); err != nil {
+	if err := phase2.InitializeFromPartedR1CS("4.ph1", "Foo", "0.ph2", nbCons, nbR1C, batchSize); err != nil {
 		t.Error(err)
 	}
 
@@ -113,51 +123,78 @@ func TestSetupFromPartedR1CS(t *testing.T) {
 	if err := keys.ExtractKeys("1.ph2"); err != nil {
 		t.Error(err)
 	}
+
+	if err := keys.ExtractSplitKeys("1.ph2", "Foo"); err != nil {
+		t.Error(err)
+	}
 }
 
-func SplitDumpR1CSBinary(ccs *bn254r1cs.R1CS, session string, batchSize int) error {
-	// E part
-	{
-		ccs2 := &bn254r1cs.R1CS{}
-		ccs2.CoeffTable = ccs.CoeffTable
-		ccs2.R1CSCore.System = ccs.R1CSCore.System
+func TestProveFromPK(t *testing.T) {
+	// Compile the circuit
+	var myCircuit BigCircuit
+	ccs, _ := frontend.Compile(bn254.ID.ScalarField(), r1cs.NewBuilder, &myCircuit)
+	ccs.Lazify()
 
-		name := fmt.Sprintf("%s.r1cs.E.save", session)
-		csFile, err := os.Create(name)
-		if err != nil {
-			return err
-		}
-		// cnt, err := ccs2.WriteTo(csFile)
-		// fmt.Println("written ", cnt, name)
-		ccs2.WriteTo(csFile)
+	// Read PK and VK
+	pkk := groth16.NewProvingKey(ecc.BN254)
+	pkFile, _ := os.Open("pk")
+	defer pkFile.Close()
+	vkFile, _ := os.Open("vk")
+	defer vkFile.Close()
+	pkk.ReadFrom(pkFile)
+	vkk := groth16.NewVerifyingKey(ecc.BN254)
+	vkk.ReadFrom(vkFile)
+
+	assignment := &BigCircuit{
+		PreImage: "16130099170765464552823636852555369511329944820189892919423002775646948828469",
+		Hash:     "12886436712380113721405259596386800092738845035233065858332878701083870690753",
 	}
-
-	N := len(ccs.R1CSCore.Constraints)
-	for i := 0; i < N; {
-		// dump R1C[i, min(i+batchSize, end)]
-		ccs2 := &bn254r1cs.R1CS{}
-		iNew := i + batchSize
-		if iNew > N {
-			iNew = N
-		}
-		ccs2.R1CSCore.Constraints = ccs.R1CSCore.Constraints[i:iNew]
-		name := fmt.Sprintf("%s.r1cs.Cons.%d.%d.save", session, i, iNew)
-		csFile, err := os.Create(name)
-		if err != nil {
-			return err
-		}
-		// cnt, err := ccs2.WriteTo(csFile)
-		// fmt.Println("written ", cnt, name)
-		writer := bufio.NewWriter(csFile)
-		enc := gob.NewEncoder(writer)
-		err = enc.Encode(ccs2)
-		if err != nil {
-			panic(err)
-		}
-		//ccs2.WriteTo(csFile)
-
-		i = iNew
+	witness, _ := frontend.NewWitness(assignment, bn254.ID.ScalarField())
+	prf, err := groth16.Prove(ccs, pkk, witness)
+	if err != nil {
+		panic(err)
 	}
+	pubWitness, err := witness.Public()
+	if err != nil {
+		panic(err)
+	}
+	err = groth16.Verify(prf, vkk, pubWitness)
+	if err != nil {
+		panic(err)
+	}
+}
 
-	return nil
+func TestProveFromSplitPK(t *testing.T) {
+	// Compile the circuit
+	nbR1C := 8
+	nbCons := 2648
+	session := "Foo"
+	batchSize := 100000
+	cs2 := groth16.NewCS(ecc.BN254)
+	cs2.LoadFromSplitBinaryConcurrent(session, nbR1C, batchSize, runtime.NumCPU())
+	fmt.Println("nbCons:", cs2.GetNbConstraints(), nbCons, "nbR1C:", cs2.GetNbR1C())
+
+	vk := groth16.NewVerifyingKey(ecc.BN254)
+	name := fmt.Sprintf("%s.vk.save", session)
+	vkFile, err := os.Open(name)
+	assert.NoError(t, err)
+	_, err = vk.ReadFrom(vkFile)
+	assert.NoError(t, err)
+
+	assignment := &BigCircuit{
+		PreImage: "16130099170765464552823636852555369511329944820189892919423002775646948828469",
+		Hash:     "12886436712380113721405259596386800092738845035233065858332878701083870690753",
+	}
+	witness, _ := frontend.NewWitness(assignment, bn254.ID.ScalarField())
+
+	pks, err := groth16.ReadSegmentProveKey(ecc.BN254, session)
+	assert.NoError(t, err)
+
+	prf, err := groth16.ProveRoll(cs2, pks[0], pks[1], witness, session)
+	assert.NoError(t, err)
+
+	pubWitness, err := witness.Public()
+	assert.NoError(t, err)
+	err = groth16.Verify(prf, vk, pubWitness)
+	assert.NoError(t, err)
 }

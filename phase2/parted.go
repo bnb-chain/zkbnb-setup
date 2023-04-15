@@ -4,16 +4,16 @@ import (
 	"bufio"
 	"encoding/gob"
 	"fmt"
-	"io"
-	"math"
-	"os"
-
 	"github.com/bnbchain/zkbnb-setup/phase1"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 	cs_bn254 "github.com/consensys/gnark/constraint/bn254"
+	"io"
+	"math"
+	"os"
+	"runtime"
 )
 
-func InitializeFromPartedR1CS(phase1Path, r1csPrefix, phase2Path string, nbCons, batchSize int) error {
+func InitializeFromPartedR1CS(phase1Path, session, phase2Path string, nbCons, nbR1C, batchSize int) error {
 	phase1File, err := os.Open(phase1Path)
 	if err != nil {
 		return err
@@ -28,21 +28,12 @@ func InitializeFromPartedR1CS(phase1Path, r1csPrefix, phase2Path string, nbCons,
 
 	// Read R1CS
 	fmt.Println("Reading R1CS...")
-	var r1cs cs_bn254.R1CS
-	{
-		name := fmt.Sprintf("%s.r1cs.E.save", r1csPrefix)
-		r1csDump, err := os.Open(name)
-		if err != nil {
-			return err
-		}
-		_, err = r1cs.ReadFrom(r1csDump)
-		if err != nil {
-			return err
-		}
-	}
+	cs := &cs_bn254.R1CS{}
+	// support nbR1C is small
+	cs.LoadFromSplitBinaryConcurrent(session, nbR1C, batchSize, runtime.NumCPU())
 
 	// 1. Process Headers
-	header1, header2, err := processHeaderParted(&r1cs, nbCons, phase1File, phase2File)
+	header1, header2, err := processHeaderParted(cs, nbCons, phase1File, phase2File)
 	if err != nil {
 		return err
 	}
@@ -53,7 +44,7 @@ func InitializeFromPartedR1CS(phase1Path, r1csPrefix, phase2Path string, nbCons,
 	}
 
 	// 3. Process evaluation
-	if err := processEvaluationsParted(&r1cs, r1csPrefix, nbCons, batchSize, header1, header2, phase1File); err != nil {
+	if err := processEvaluationsParted(cs, session, nbCons, nbR1C, batchSize, header1, header2, phase1File); err != nil {
 		return err
 	}
 
@@ -63,7 +54,7 @@ func InitializeFromPartedR1CS(phase1Path, r1csPrefix, phase2Path string, nbCons,
 	}
 
 	// Process parameters
-	if err := processPVCKKParted(&r1cs, r1csPrefix, nbCons, batchSize, header1, header2, phase2File); err != nil {
+	if err := processPVCKKParted(cs, session, nbCons, batchSize, header1, header2, phase2File); err != nil {
 		return err
 	}
 
@@ -73,6 +64,8 @@ func InitializeFromPartedR1CS(phase1Path, r1csPrefix, phase2Path string, nbCons,
 
 // processHeaderParted r1cs has no R1CCore.Constraints included
 func processHeaderParted(r1cs *cs_bn254.R1CS, nbCons int, phase1File, phase2File *os.File) (*phase1.Header, *Header, error) {
+	fmt.Println("Processing the headers ...")
+
 	var header2 Header
 	var header1 phase1.Header
 
@@ -109,7 +102,7 @@ func processHeaderParted(r1cs *cs_bn254.R1CS, nbCons int, phase1File, phase2File
 	return &header1, &header2, nil
 }
 
-func processEvaluationsParted(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, batchSize int, header1 *phase1.Header, header2 *Header, phase1File *os.File) error {
+func processEvaluationsParted(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, nbR1C, batchSize int, header1 *phase1.Header, header2 *Header, phase1File *os.File) error {
 	fmt.Println("Processing evaluation of [A]₁, [B]₁, [B]₂")
 
 	lagFile, err := os.Open("srs.lag")
@@ -126,7 +119,7 @@ func processEvaluationsParted(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, ba
 
 	// Read [α]₁ , [β]₁ , [β]₂  from phase1 last contribution (Check Phase 1 file format for reference)
 	N := int(math.Pow(2, float64(header1.Power)))
-	pos := 35 + 192*int64(N) + int64((header1.Contributions-1)*640)
+	pos := 35 + 192*int64(N) + int64((header1.Contributions-1)*phase1.ContributionSize)
 	if _, err := phase1File.Seek(pos, io.SeekStart); err != nil {
 		return err
 	}
@@ -137,7 +130,6 @@ func processEvaluationsParted(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, ba
 
 	// Write [α]₁ , [β]₁ , [β]₂
 	enc := bn254.NewEncoder(evalFile)
-	dec := bn254.NewDecoder(lagFile)
 	if err := enc.Encode(&c1.G1.Alpha); err != nil {
 		return err
 	}
@@ -151,38 +143,18 @@ func processEvaluationsParted(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, ba
 	var tauG1 []bn254.G1Affine
 
 	// Deserialize Lagrange SRS TauG1
+	dec := bn254.NewDecoder(lagFile)
 	if err := dec.Decode(&tauG1); err != nil {
 		return err
 	}
 
 	// Accumlate {[A]₁}
 	buff := make([]bn254.G1Affine, header2.Wires)
-	for i := 0; i < nbCons; {
-		fmt.Println("processing", i, "/", nbCons)
-		// read R1C[i, min(i+batchSize, end)]
-		ccs2 := &cs_bn254.R1CS{}
-		iNew := i + batchSize
-		if iNew > nbCons {
-			iNew = nbCons
+	for i := 0; i < nbCons; i++ {
+		c := r1cs.GetConstraintToSolve(i)
+		for _, t := range c.L {
+			accumulateG1(r1cs, &buff[t.WireID()], t, &tauG1[i])
 		}
-		name := fmt.Sprintf("%s.r1cs.Cons.%d.%d.save", r1csPrefix, i, iNew)
-		csFile, err := os.Open(name)
-		if err != nil {
-			return err
-		}
-		reader := bufio.NewReader(csFile)
-		enc := gob.NewDecoder(reader)
-		err = enc.Decode(ccs2)
-		if err != nil {
-			return err
-		}
-		for j, c := range ccs2.R1CSCore.Constraints {
-			for _, t := range c.L {
-				accumulateG1(r1cs, &buff[t.WireID()], t, &tauG1[j+i])
-			}
-		}
-
-		i = iNew
 	}
 	// Serialize {[A]₁}
 	if err := enc.Encode(buff); err != nil {
@@ -192,32 +164,11 @@ func processEvaluationsParted(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, ba
 	// Reset buff
 	buff = make([]bn254.G1Affine, header2.Wires)
 	// Accumlate {[B]₁}
-	for i := 0; i < nbCons; {
-		fmt.Println("processing", i, "/", nbCons)
-		// read R1C[i, min(i+batchSize, end)]
-		ccs2 := &cs_bn254.R1CS{}
-		iNew := i + batchSize
-		if iNew > nbCons {
-			iNew = nbCons
+	for i := 0; i < nbCons; i++ {
+		c := r1cs.GetConstraintToSolve(i)
+		for _, t := range c.R {
+			accumulateG1(r1cs, &buff[t.WireID()], t, &tauG1[i])
 		}
-		name := fmt.Sprintf("%s.r1cs.Cons.%d.%d.save", r1csPrefix, i, iNew)
-		csFile, err := os.Open(name)
-		if err != nil {
-			return err
-		}
-		reader := bufio.NewReader(csFile)
-		enc := gob.NewDecoder(reader)
-		err = enc.Decode(ccs2)
-		if err != nil {
-			return err
-		}
-		for j, c := range ccs2.R1CSCore.Constraints {
-			for _, t := range c.R {
-				accumulateG1(r1cs, &buff[t.WireID()], t, &tauG1[j+i])
-			}
-		}
-
-		i = iNew
 	}
 	// Serialize {[B]₁}
 	if err := enc.Encode(buff); err != nil {
@@ -238,32 +189,11 @@ func processEvaluationsParted(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, ba
 		return err
 	}
 	// Accumlate {[B]₂}
-	for i := 0; i < nbCons; {
-		fmt.Println("processing", i, "/", nbCons)
-		// read R1C[i, min(i+batchSize, end)]
-		ccs2 := &cs_bn254.R1CS{}
-		iNew := i + batchSize
-		if iNew > nbCons {
-			iNew = nbCons
+	for i := 0; i < nbCons; i++ {
+		c := r1cs.GetConstraintToSolve(i)
+		for _, t := range c.R {
+			accumulateG2(r1cs, &buff2[t.WireID()], t, &tauG2[i])
 		}
-		name := fmt.Sprintf("%s.r1cs.Cons.%d.%d.save", r1csPrefix, i, iNew)
-		csFile, err := os.Open(name)
-		if err != nil {
-			return err
-		}
-		reader := bufio.NewReader(csFile)
-		enc := gob.NewDecoder(reader)
-		err = enc.Decode(ccs2)
-		if err != nil {
-			return err
-		}
-		for j, c := range ccs2.R1CSCore.Constraints {
-			for _, t := range c.R {
-				accumulateG2(r1cs, &buff2[t.WireID()], t, &tauG2[j+i])
-			}
-		}
-
-		i = iNew
 	}
 	// Serialize {[B]₂}
 	if err := enc.Encode(buff2); err != nil {
@@ -274,76 +204,61 @@ func processEvaluationsParted(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, ba
 }
 
 func processPVCKKParted(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, batchSize int, header1 *phase1.Header, header2 *Header, phase2File *os.File) error {
-	fmt.Println("Processing L")
+	fmt.Println("Processing PKK, VKK, and CKK")
 	lagFile, err := os.Open("srs.lag")
 	if err != nil {
 		return err
 	}
 	defer lagFile.Close()
 
-	nWires := header2.Witness + header2.Public
-	var TauG1, AlphaTauG1, BetaTauG1 []bn254.G1Affine
-
+	var buffSRS []bn254.G1Affine
 	reader := bufio.NewReader(lagFile)
 	writer := bufio.NewWriter(phase2File)
 	defer writer.Flush()
 	dec := bn254.NewDecoder(reader)
 	enc := bn254.NewEncoder(writer)
 
-	// L =  Output(TauG1) + Right(AlphaTauG1) + Left(BetaTauG1)
-	L := make([]bn254.G1Affine, nWires)
+	// L = O(TauG1) + R(AlphaTauG1) + L(BetaTauG1)
+	L := make([]bn254.G1Affine, header2.Wires)
 
 	// Deserialize Lagrange SRS TauG1
-	if err := dec.Decode(&TauG1); err != nil {
+	if err := dec.Decode(&buffSRS); err != nil {
 		return err
 	}
+
+	for i := 0; i < nbCons; i++ {
+		c := r1cs.GetConstraintToSolve(i)
+		// Output(Tau)
+		for _, t := range c.O {
+			accumulateG1(r1cs, &L[t.WireID()], t, &buffSRS[i])
+		}
+	}
+
 	// Deserialize Lagrange SRS AlphaTauG1
-	if err := dec.Decode(&AlphaTauG1); err != nil {
+	if err := dec.Decode(&buffSRS); err != nil {
 		return err
 	}
+	for i := 0; i < nbCons; i++ {
+		c := r1cs.GetConstraintToSolve(i)
+		// Right(AlphaTauG1)
+		for _, t := range c.R {
+			accumulateG1(r1cs, &L[t.WireID()], t, &buffSRS[i])
+		}
+	}
+
 	// Deserialize Lagrange SRS BetaTauG1
-	if err := dec.Decode(&BetaTauG1); err != nil {
+	if err := dec.Decode(&buffSRS); err != nil {
 		return err
 	}
-
-	for i := 0; i < nbCons; {
-		fmt.Println("processing", i, "/", nbCons)
-		// read R1C[i, min(i+batchSize, end)]
-		ccs2 := &cs_bn254.R1CS{}
-		iNew := i + batchSize
-		if iNew > nbCons {
-			iNew = nbCons
+	for i := 0; i < nbCons; i++ {
+		c := r1cs.GetConstraintToSolve(i)
+		// Left(BetaTauG1)
+		for _, t := range c.L {
+			accumulateG1(r1cs, &L[t.WireID()], t, &buffSRS[i])
 		}
-		name := fmt.Sprintf("%s.r1cs.Cons.%d.%d.save", r1csPrefix, i, iNew)
-		csFile, err := os.Open(name)
-		if err != nil {
-			return err
-		}
-		reader := bufio.NewReader(csFile)
-		enc := gob.NewDecoder(reader)
-		err = enc.Decode(ccs2)
-		if err != nil {
-			return err
-		}
-		for j, c := range ccs2.R1CSCore.Constraints {
-			// Output(Tau)
-			for _, t := range c.O {
-				accumulateG1(r1cs, &L[t.WireID()], t, &TauG1[j+i])
-			}
-			// Right(AlphaTauG1)
-			for _, t := range c.R {
-				accumulateG1(r1cs, &L[t.WireID()], t, &AlphaTauG1[j+i])
-			}
-			// Left(BetaTauG1)
-			for _, t := range c.L {
-				accumulateG1(r1cs, &L[t.WireID()], t, &BetaTauG1[j+i])
-			}
-		}
-
-		i = iNew
 	}
 
-	pkk, vkk, ckk :=filterL(L, header2, &r1cs.CommitmentInfo)
+	pkk, vkk, ckk := filterL(L, header2, &r1cs.CommitmentInfo)
 	// Write PKK
 	for i := 0; i < len(pkk); i++ {
 		if err := enc.Encode(&pkk[i]); err != nil {
@@ -374,5 +289,6 @@ func processPVCKKParted(r1cs *cs_bn254.R1CS, r1csPrefix string, nbCons, batchSiz
 	if err := cmtEnc.Encode(r1cs.CommitmentInfo); err != nil {
 		return err
 	}
+
 	return nil
 }

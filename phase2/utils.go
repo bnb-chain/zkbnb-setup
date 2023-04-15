@@ -232,9 +232,9 @@ func processEvaluations(header1 *phase1.Header, header2 *Header, r1csPath string
 }
 
 func processDeltaAndZ(header1 *phase1.Header, header2 *Header, phase1File, phase2File *os.File) error {
-	fmt.Println("Processing Delta and Z")	
+	fmt.Println("Processing Delta and Z")
 	writer := bufio.NewWriter(phase2File)
-	defer writer.Flush()	
+	defer writer.Flush()
 	enc := bn254.NewEncoder(writer)
 
 	// Write [δ]₁ and [δ]₂
@@ -306,7 +306,7 @@ func processPVCKK(header1 *phase1.Header, header2 *Header, r1csPath string, phas
 	enc := bn254.NewEncoder(writer)
 
 	// L = O(TauG1) + R(AlphaTauG1) + L(BetaTauG1)
-	L :=make([]bn254.G1Affine, header2.Wires)
+	L := make([]bn254.G1Affine, header2.Wires)
 
 	// Deserialize Lagrange SRS TauG1
 	if err := dec.Decode(&buffSRS); err != nil {
@@ -342,7 +342,7 @@ func processPVCKK(header1 *phase1.Header, header2 *Header, r1csPath string, phas
 		}
 	}
 
-	pkk, vkk, ckk :=filterL(L, header2, &r1cs.CommitmentInfo)
+	pkk, vkk, ckk := filterL(L, header2, &r1cs.CommitmentInfo)
 	// Write PKK
 	for i := 0; i < len(pkk); i++ {
 		if err := enc.Encode(&pkk[i]); err != nil {

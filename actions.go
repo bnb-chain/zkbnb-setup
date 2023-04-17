@@ -64,7 +64,7 @@ func p2n(cCtx *cli.Context) error {
 
 func p2np(cCtx *cli.Context) error {
 	// sanity check
-	if cCtx.Args().Len() != 5 {
+	if cCtx.Args().Len() != 6 {
 		return errors.New("please provide the correct arguments")
 	}
 	
@@ -76,12 +76,17 @@ func p2np(cCtx *cli.Context) error {
 		return err
 	}
 
-	batchSize, err := strconv.Atoi(cCtx.Args().Get(4))
+	nbR1C, err := strconv.Atoi(cCtx.Args().Get(4))
 	if err != nil {
 		return err
 	}
 
-	err = phase2.InitializeFromPartedR1CS(phase1Path, r1csPath, phase2Path, nbCons, batchSize)
+	batchSize, err := strconv.Atoi(cCtx.Args().Get(5))
+	if err != nil {
+		return err
+	}
+
+	err = phase2.InitializeFromPartedR1CS(phase1Path, r1csPath, phase2Path, nbCons, nbR1C, batchSize)
 	return err
 }
 

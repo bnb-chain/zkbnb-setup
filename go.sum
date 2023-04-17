@@ -1,7 +1,7 @@
 github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM=
 github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
-github.com/bnb-chain/gnark v0.7.2-0.20230412065523-4d344ff30ab3 h1:kT/VwE3SEOXGlVr+hyUoblX+vANUIIdvJQShskAujyk=
-github.com/bnb-chain/gnark v0.7.2-0.20230412065523-4d344ff30ab3/go.mod h1:fmHUzzss1n32K3COWMvrQj7uo7GjIeIr1wXzjj5gmj8=
+github.com/bnb-chain/gnark v0.7.2-0.20230417083854-81e50b01d1ec h1:ZshccfVvMR24olOq8yg1qA1telhCmO/heQROYbW3L48=
+github.com/bnb-chain/gnark v0.7.2-0.20230417083854-81e50b01d1ec/go.mod h1:fmHUzzss1n32K3COWMvrQj7uo7GjIeIr1wXzjj5gmj8=
 github.com/bnb-chain/gnark-crypto v0.8.1-0.20230412133626-30223a679fb7 h1:ME5Nif4WgGgWKH2omB6ybic5bsU22bHy43xBsgMBHgM=
 github.com/bnb-chain/gnark-crypto v0.8.1-0.20230412133626-30223a679fb7/go.mod h1:a2DQL4+5ywF6safEeZFEPGRiiGbjzGFRUN2sg06VuU4=
 github.com/consensys/bavard v0.1.13 h1:oLhMLOFGTLdlda/kma4VOJazblc7IM5y5QPd2A/YjhQ=

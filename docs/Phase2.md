@@ -2,7 +2,9 @@
 This phase is circuit-specific, so if you have `n` circuits, then you need to run this phase `n` times. The final output will include the hash of circuit's R1CS file. 
 
 ### Initialization
-1. The coordinator runs the command `zkbnb-setup p2n <lastPhase1Contribution.ph1> <r1cs> <initialPhase2Contribution.ph2>`.
+Depending on the R1CS file, the coordinator run one of the following commands:
+1. Regular R1CS: `zkbnb-setup p2n <lastPhase1Contribution.ph1> <r1cs> <initialPhase2Contribution.ph2>`.
+2. Parted R1CS: `zkbnb-setupp2np <phase1Path> <r1csPath> <outputPhase2> <#constraints> <#nbR1C> <batchSize>`
 
 ## Contributions 
 This process is similar to phase 1, except we use commands `p2c` and `p2v`

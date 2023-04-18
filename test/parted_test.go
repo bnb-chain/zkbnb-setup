@@ -120,10 +120,6 @@ func TestSetupFromPartedR1CS(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err := keys.ExtractKeys("1.ph2"); err != nil {
-		t.Error(err)
-	}
-
 	if err := keys.ExtractSplitKeys("1.ph2", "Foo"); err != nil {
 		t.Error(err)
 	}

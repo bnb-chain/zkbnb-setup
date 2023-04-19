@@ -21,7 +21,6 @@ func main() {
 				Action:      p1n,
 			},
 
-			
 			/* --------------------------- Phase 1 Contribute --------------------------- */
 			{
 				Name:        "p1c",
@@ -60,16 +59,22 @@ func main() {
 			/* ----------------------------- Phase 2 Verify ----------------------------- */
 			{
 				Name:        "p2v",
-				Usage:       "p2v <inputPath>",
+				Usage:       "p2v <inputPath> <originPath>",
 				Description: "verify phase 2 contributions for Groth16",
 				Action:      p2v,
 			},
 			/* ----------------------------- Keys Extraction ---------------------------- */
 			{
-				Name:        "keys",
-				Usage:       "keys <inputPath>",
+				Name:        "key",
+				Usage:       "key <inputPath>",
 				Description: "extract proving and verifying keys",
 				Action:      extract,
+			},
+			{
+				Name:        "keys",
+				Usage:       "keys <inputPath> <session>",
+				Description: "extract proving and verifying keys split",
+				Action:      extracts,
 			},
 		},
 	}

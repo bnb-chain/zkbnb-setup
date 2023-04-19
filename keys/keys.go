@@ -432,7 +432,6 @@ func extractSplitPK(phase2Path, session string) error {
 
 	// 11. Write nbWires
 	nbWires := uint64(header.Wires)
-	fmt.Println("&&&&&&&&& nbWires", nbWires)
 	if err := encPkE.Encode(nbWires); err != nil {
 		return err
 	}

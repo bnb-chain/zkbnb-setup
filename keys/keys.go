@@ -637,6 +637,19 @@ func extractSplitVK(phase2Path, session string) error {
 	if _, err := vk.writeTo(vkWriter); err != nil {
 		return err
 	}
+
+	// Write the commitment key so that it can be read in pk separately
+	name = fmt.Sprintf("%s.pk.CommitmentKey.save", session)
+		commitmentKeyFile, err := os.Create(name)
+		if err != nil {
+			return err
+		}
+		defer commitmentKeyFile.Close()
+		vk.CommitmentKey.WriteTo(commitmentKeyFile)
+		_, err = vk.CommitmentKey.WriteTo(commitmentKeyFile)
+		if err != nil {
+			return err
+		}
 	return nil
 }
 

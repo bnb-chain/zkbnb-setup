@@ -1,5 +1,4 @@
 # Phase One 
-
 This phase is to generate universal structured reference string (SRS) based on a power `p`.
 The value of `2ᵖ` determines the maximum number of constraints for circuits setup in the second phase.
 

@@ -4,9 +4,9 @@ import (
 	"errors"
 	"strconv"
 
+	"github.com/bnbchain/zkbnb-setup/keys"
 	"github.com/bnbchain/zkbnb-setup/phase1"
 	"github.com/bnbchain/zkbnb-setup/phase2"
-	"github.com/bnbchain/zkbnb-setup/keys"
 	"github.com/urfave/cli/v2"
 )
 
@@ -54,7 +54,7 @@ func p2n(cCtx *cli.Context) error {
 	if cCtx.Args().Len() != 3 {
 		return errors.New("please provide the correct arguments")
 	}
-	
+
 	phase1Path := cCtx.Args().Get(0)
 	r1csPath := cCtx.Args().Get(1)
 	phase2Path := cCtx.Args().Get(2)
@@ -67,7 +67,7 @@ func p2np(cCtx *cli.Context) error {
 	if cCtx.Args().Len() != 6 {
 		return errors.New("please provide the correct arguments")
 	}
-	
+
 	phase1Path := cCtx.Args().Get(0)
 	r1csPath := cCtx.Args().Get(1)
 	phase2Path := cCtx.Args().Get(2)
@@ -119,5 +119,16 @@ func extract(cCtx *cli.Context) error {
 	}
 	inputPath := cCtx.Args().Get(0)
 	err := keys.ExtractKeys(inputPath)
+	return err
+}
+
+func extracts(cCtx *cli.Context) error {
+	// sanity check
+	if cCtx.Args().Len() != 2 {
+		return errors.New("please provide the correct arguments")
+	}
+	inputPath := cCtx.Args().Get(0)
+	session := cCtx.Args().Get(1)
+	err := keys.ExtractSplitKeys(inputPath, session)
 	return err
 }

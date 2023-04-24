@@ -45,7 +45,7 @@ func main() {
 			/* ------------------- Phase 2 Initialize from parted R1CS ------------------ */
 			{
 				Name:        "p2np",
-				Usage:       "p2np <phase1Path> <r1csPath> <outputPhase2> <#constraints> <#nbR1C> <batchSize>",
+				Usage:       "p2np <phase1Path> <r1csPath> <outputPhase2> <#constraints> <#R1C> <batchSize>",
 				Description: "initialize phase 2 for the given circuit parted R1CS",
 				Action:      p2np,
 			},

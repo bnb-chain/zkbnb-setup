@@ -76,6 +76,12 @@ func main() {
 				Description: "extract proving and verifying keys split",
 				Action:      extracts,
 			},
+			{
+				Name:        "export",
+				Usage:       "keys <inputPath> <session>",
+				Description: "export verifier smart contract from verifying key",
+				Action:      exportSol,
+			},
 		},
 	}
 

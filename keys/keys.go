@@ -4,14 +4,15 @@ import (
 	"bufio"
 	"encoding/gob"
 	"fmt"
-	"io"
-	"os"
-
 	"github.com/bnbchain/zkbnb-setup/phase2"
+	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr/fft"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr/pedersen"
+	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/constraint"
+	"io"
+	"os"
 )
 
 type VerifyingKey struct {
@@ -640,16 +641,16 @@ func extractSplitVK(phase2Path, session string) error {
 
 	// Write the commitment key so that it can be read in pk separately
 	name = fmt.Sprintf("%s.pk.CommitmentKey.save", session)
-		commitmentKeyFile, err := os.Create(name)
-		if err != nil {
-			return err
-		}
-		defer commitmentKeyFile.Close()
-		vk.CommitmentKey.WriteTo(commitmentKeyFile)
-		_, err = vk.CommitmentKey.WriteTo(commitmentKeyFile)
-		if err != nil {
-			return err
-		}
+	commitmentKeyFile, err := os.Create(name)
+	if err != nil {
+		return err
+	}
+	defer commitmentKeyFile.Close()
+	vk.CommitmentKey.WriteTo(commitmentKeyFile)
+	_, err = vk.CommitmentKey.WriteTo(commitmentKeyFile)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -676,6 +677,28 @@ func ExtractSplitKeys(phase2Path, session string) error {
 		return err
 	}
 	fmt.Println("Keys have been extracted successfully")
+	return nil
+}
+
+func ExportSol(session string) error {
+	filename := session + ".sol"
+	fmt.Printf("Exporting %s\n", filename)
+	f, _ := os.Open(session + ".vk.save")
+	verifyingKey := groth16.NewVerifyingKey(ecc.BN254)
+	_, err := verifyingKey.ReadFrom(f)
+	if err != nil {
+		panic(fmt.Errorf("read file error"))
+	}
+	err = f.Close()
+	f, err = os.Create(filename)
+	if err != nil {
+		panic(err)
+	}
+	err = verifyingKey.ExportSolidity(f)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%s has been extracted successfully\n", filename)
 	return nil
 }
 

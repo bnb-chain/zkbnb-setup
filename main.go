@@ -77,8 +77,8 @@ func main() {
 				Action:      extracts,
 			},
 			{
-				Name:        "export",
-				Usage:       "keys <session>",
+				Name:        "sol",
+				Usage:       "sol <session>",
 				Description: "export verifier smart contract from verifying key",
 				Action:      exportSol,
 			},

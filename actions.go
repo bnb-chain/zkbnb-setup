@@ -132,3 +132,13 @@ func extracts(cCtx *cli.Context) error {
 	err := keys.ExtractSplitKeys(inputPath, session)
 	return err
 }
+
+func exportSol(cCtx *cli.Context) error {
+	// sanity check
+	if cCtx.Args().Len() != 1 {
+		return errors.New("please provide the correct arguments")
+	}
+	session := cCtx.Args().Get(0)
+	err := keys.ExportSol(session)
+	return err
+}

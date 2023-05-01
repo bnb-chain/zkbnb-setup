@@ -3,6 +3,7 @@ package phase2
 import (
 	"bufio"
 	"bytes"
+	"crypto/rand"
 	"encoding/gob"
 	"errors"
 	"fmt"
@@ -350,6 +351,22 @@ func processPVCKK(header1 *phase1.Header, header2 *Header, r1csPath string, phas
 		}
 	}
 
+	if header2.PrivateCommitted > 0 {
+		// Write [σ⁻¹]₂
+		g2, err := randomOnG2()
+		if err != nil {
+			return err
+		}
+		if err := enc.Encode(&g2); err != nil {
+			return err
+		}
+
+		// Write [CKK]₁^σ
+		if err := enc.Encode(ckk); err != nil {
+			return err
+		}
+	}
+
 	// VKK
 	evalFile, err := os.OpenFile("evals", os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
@@ -563,4 +580,12 @@ func filterL(L []bn254.G1Affine, header2 *Header, cmtInfo *constraint.Commitment
 	}
 
 	return pkk, vkk, ckk
+}
+
+func randomOnG2() (bn254.G2Affine, error) {
+	gBytes := make([]byte, fr.Bytes)
+	if _, err := rand.Read(gBytes); err != nil {
+		return bn254.G2Affine{}, err
+	}
+	return bn254.HashToG2(gBytes, []byte("random on g2"))
 }

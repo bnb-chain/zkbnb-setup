@@ -44,11 +44,11 @@
         [δ]₁                    <32 bytes>
         [δ]₂                    <64 bytes>
         Z                       <32(#Domain-1) bytes>
-        PKK                     <32(#Witness) bytes>
+        PKK                     <32(#Witness)  bytes>
     }
     Commitment {
         [σ⁻¹]₂                  <64 bytes>
-        [CKK]₁^σ                <32(#PrivateCommitted)>
+        [CKK]₁^σ                <32(#PrivateCommitted)+4 bytes>
     }
     Contributions
     {

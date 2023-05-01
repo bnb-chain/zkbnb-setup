@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/bnbchain/zkbnb-setup/common"
+	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 )
@@ -70,9 +71,9 @@ func Contribute(inputPath, outputPath string) error {
 	if err != nil {
 		return err
 	}
-	defer outputFile.Close()	
+	defer outputFile.Close()
 	writer := bufio.NewWriter(outputFile)
-	defer writer.Flush()	
+	defer writer.Flush()
 	enc := bn254.NewEncoder(writer)
 
 	// Read/Write header with extra contribution
@@ -126,6 +127,39 @@ func Contribute(inputPath, outputPath string) error {
 	// Process PKK using δ⁻¹
 	if err = scale(dec, enc, header.Witness, &deltaInvBI); err != nil {
 		return err
+	}
+
+	// Process commitment key setup contribution
+	if header.PrivateCommitted > 0 {
+		// Contribute to [σ⁻¹]₂
+		var sigma, sigmaInv fr.Element
+		var sigmaBI, sigmaInvBI big.Int
+		sigma.SetRandom()
+		sigmaInv.Inverse(&sigma)
+
+		sigma.BigInt(&sigmaBI)
+		sigmaInv.BigInt(&sigmaInvBI)
+
+		var sigma2 bn254.G2Affine
+		if err := dec.Decode(&sigma2); err != nil {
+			return err
+		}
+		sigma2.ScalarMultiplication(&sigma2, &sigmaInvBI)
+		if err := enc.Encode(&sigma2); err != nil {
+			return err
+		}
+
+		// Contribute to [CKK]₁^σ
+		var ckk []bn254.G1Affine
+		if err := dec.Decode(&ckk); err != nil {
+			return err
+		}
+		for i := 0; i < len(ckk); i++ {
+			ckk[i].ScalarMultiplication(&ckk[i], &sigmaBI)
+		}
+		if err := enc.Encode(ckk); err != nil {
+			return err
+		}
 	}
 
 	// Copy old contributions
@@ -231,6 +265,13 @@ func Verify(inputPath, originPath string) error {
 		return err
 	}
 
+	// Verify commitment key setup
+	if orgHeader.PrivateCommitted > 0 {
+		if err := verifyCommitmentSetup(inputDec, originDec); err != nil {
+			return err
+		}
+	}
+
 	// Verify contributions
 	fmt.Printf("#Contributions := %d\n", curHeader.Contributions)
 	var prevDelta = g1
@@ -255,5 +296,56 @@ func Verify(inputPath, originPath string) error {
 	}
 
 	fmt.Println("Contributions verification has been successful")
+	return nil
+}
+
+func verifyCommitmentSetup(inputDec, originDec *bn254.Decoder) error {
+	var gRootSigma, g bn254.G2Affine
+	var ckk, ckkSigma []bn254.G1Affine
+	var commitment, knowledgeProof bn254.G1Affine
+
+	if err := originDec.Decode(&g); err != nil {
+		return err
+	}
+	if err := originDec.Decode(&ckk); err != nil {
+		return err
+	}
+	if err := inputDec.Decode(&gRootSigma); err != nil {
+		return err
+	}
+	if err := inputDec.Decode(&ckkSigma); err != nil {
+		return err
+	}
+
+	values := make([]fr.Element, len(ckk))
+	for i := 0; i < len(values); i++ {
+		values[i].SetRandom()
+	}
+
+	config := ecc.MultiExpConfig{
+		NbTasks: 1,
+	}
+
+	if _, err := commitment.MultiExp(ckk, values, config); err != nil {
+		return err
+	}
+
+	if _, err := knowledgeProof.MultiExp(ckkSigma, values, config); err != nil {
+		return err
+	}
+
+	var modMinusOne big.Int
+	modMinusOne.Sub(fr.Modulus(), big.NewInt(1))
+	var gRootSigmaNeg bn254.G2Affine
+	gRootSigmaNeg.ScalarMultiplication(&gRootSigma, &modMinusOne)
+
+	product, err := bn254.Pair([]bn254.G1Affine{commitment, knowledgeProof}, []bn254.G2Affine{g, gRootSigmaNeg})
+	if err != nil {
+		return err
+	}
+	if !product.IsOne() {
+		return fmt.Errorf("error verifying commitment setup")
+	}
+
 	return nil
 }

@@ -548,7 +548,7 @@ func filterL(L []bn254.G1Affine, header2 *Header, cmtInfo *constraint.Commitment
 	ckk := make([]bn254.G1Affine, header2.PrivateCommitted)
 	vI, cI := 0, 0
 	for i := range L {
-		isCommittedPrivate := cI < cmtInfo.NbPrivateCommitted && i == cmtInfo.PrivateCommitted()[i]
+		isCommittedPrivate := cI < cmtInfo.NbPrivateCommitted && i == cmtInfo.PrivateCommitted()[cI]
 		isCommitment := cmtInfo.Is() && i == cmtInfo.CommitmentIndex
 		isPublic := i < header2.Public
 		if isCommittedPrivate {

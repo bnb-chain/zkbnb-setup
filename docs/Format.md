@@ -43,21 +43,16 @@
     Parameters {
         [δ]₁                    <32 bytes>
         [δ]₂                    <64 bytes>
-        Z                       <32(#Domain-1) bytes>
-        PKK                     <32(#Witness)  bytes>
-    }
-    Commitment {
+        [Z]₁                    <32(#Domain-1) bytes>
+        δ[PKK]₁                 <32(#Witness)  bytes>
         [σ⁻¹]₂                  <64 bytes>
-        [CKK]₁^σ                <32(#PrivateCommitted)+4 bytes>
+        σ[CKK]₁                 <32(#PrivateCommitted)+4 bytes>
     }
     Contributions
     {
-        {
-            [δ]₁                <32 bytes>
-            [s]₁                <32 bytes>
-            [sx]₁               <32 bytes>
-            [spx]₂              <64 bytes>
-            hash                <32 bytes>
+        {δ₁, s₁, sx₁, spx₂}     <160  bytes>
+        {σ₁⁻¹, s₁, sx₁, spx₂}   <160  bytes>
+        hash                <32 bytes>
         }
         ...
     }
@@ -87,6 +82,7 @@ The main objective is to reduce the storage/bandwidth cost for phase 2 contribut
         [B]₁                    <32(#Wires)+4 bytes>
         [B]₂                    <64(#Wires)+4 bytes>
         VKK                     <32(#Public)+4 bytes>
+        [g]₂                    <64 randomOnG2>
         CKK                     <32(#PrivateCommitted)+4 bytes>
         CmtInfo                 <Gob>
     }

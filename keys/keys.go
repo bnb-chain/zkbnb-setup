@@ -535,18 +535,18 @@ func extractVK(phase2Path string) error {
 		return err
 	}
 
-	// 8. Setup commitment key
-	var ckk []bn254.G1Affine
-	if err := decEvals.Decode(&ckk); err != nil {
-		return err
-	}
-	vk.CommitmentKey, err = pedersen.Setup(ckk)
-	if err != nil {
-		return err
-	}
-	if _, err := vk.writeTo(vkWriter); err != nil {
-		return err
-	}
+	// 8. TODO: Extract commitment key
+	// var ckk []bn254.G1Affine
+	// if err := decEvals.Decode(&ckk); err != nil {
+	// 	return err
+	// }
+	// vk.CommitmentKey, err = pedersen.Setup(ckk)
+	// if err != nil {
+	// 	return err
+	// }
+	// if _, err := vk.writeTo(vkWriter); err != nil {
+	// 	return err
+	// }
 	return nil
 }
 

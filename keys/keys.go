@@ -4,15 +4,16 @@ import (
 	"bufio"
 	"encoding/gob"
 	"fmt"
-	"github.com/bnbchain/zkbnb-setup/phase2"
+	"io"
+	"os"
+
+	"github.com/bnb-chain/zkbnb-setup/phase2"
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr/fft"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr/pedersen"
 	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/constraint"
-	"io"
-	"os"
 )
 
 type VerifyingKey struct {

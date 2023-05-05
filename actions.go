@@ -4,9 +4,9 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/bnbchain/zkbnb-setup/keys"
-	"github.com/bnbchain/zkbnb-setup/phase1"
-	"github.com/bnbchain/zkbnb-setup/phase2"
+	"github.com/bnb-chain/zkbnb-setup/keys"
+	"github.com/bnb-chain/zkbnb-setup/phase1"
+	"github.com/bnb-chain/zkbnb-setup/phase2"
 	"github.com/urfave/cli/v2"
 )
 

@@ -5,7 +5,7 @@ import (
 	"math/bits"
 	"runtime"
 
-	"github.com/bnbchain/zkbnb-setup/common"
+	"github.com/bnb-chain/zkbnb-setup/common"
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
@@ -46,7 +46,6 @@ func kerDIF8G2(a []bn254.G2Jac, twiddles [][]fr.Element, stage int) {
 	butterflyG2(&a[4], &a[5])
 	butterflyG2(&a[6], &a[7])
 }
-
 
 func difFFTG2(a []bn254.G2Jac, twiddles [][]fr.Element, stage, maxSplits int, chDone chan struct{}) {
 	if chDone != nil {

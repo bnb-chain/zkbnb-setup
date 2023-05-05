@@ -7,7 +7,7 @@ import (
 	"math/big"
 	"os"
 
-	"github.com/bnbchain/zkbnb-setup/common"
+	"github.com/bnb-chain/zkbnb-setup/common"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 )
@@ -70,9 +70,9 @@ func Contribute(inputPath, outputPath string) error {
 	if err != nil {
 		return err
 	}
-	defer outputFile.Close()	
+	defer outputFile.Close()
 	writer := bufio.NewWriter(outputFile)
-	defer writer.Flush()	
+	defer writer.Flush()
 	enc := bn254.NewEncoder(writer)
 
 	// Read/Write header with extra contribution

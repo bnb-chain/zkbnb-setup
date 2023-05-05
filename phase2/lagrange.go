@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/bnbchain/zkbnb-setup/lagrange"
+	"github.com/bnb-chain/zkbnb-setup/lagrange"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr/fft"
 )

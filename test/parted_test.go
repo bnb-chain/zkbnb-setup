@@ -2,17 +2,18 @@ package test
 
 import (
 	"fmt"
-	"github.com/consensys/gnark-crypto/ecc"
-	"github.com/consensys/gnark/backend/groth16"
-	"github.com/consensys/gnark/std/hash/mimc"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"runtime"
 	"testing"
 
-	"github.com/bnbchain/zkbnb-setup/keys"
-	"github.com/bnbchain/zkbnb-setup/phase1"
-	"github.com/bnbchain/zkbnb-setup/phase2"
+	"github.com/consensys/gnark-crypto/ecc"
+	"github.com/consensys/gnark/backend/groth16"
+	"github.com/consensys/gnark/std/hash/mimc"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/bnb-chain/zkbnb-setup/keys"
+	"github.com/bnb-chain/zkbnb-setup/phase1"
+	"github.com/bnb-chain/zkbnb-setup/phase2"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"

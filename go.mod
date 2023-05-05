@@ -1,4 +1,4 @@
-module github.com/bnbchain/zkbnb-setup
+module github.com/bnb-chain/zkbnb-setup
 
 go 1.19
 

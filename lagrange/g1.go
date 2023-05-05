@@ -5,7 +5,7 @@ import (
 	"math/bits"
 	"runtime"
 
-	"github.com/bnbchain/zkbnb-setup/common"
+	"github.com/bnb-chain/zkbnb-setup/common"
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"

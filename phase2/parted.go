@@ -4,13 +4,14 @@ import (
 	"bufio"
 	"encoding/gob"
 	"fmt"
-	"github.com/bnbchain/zkbnb-setup/phase1"
-	"github.com/consensys/gnark-crypto/ecc/bn254"
-	cs_bn254 "github.com/consensys/gnark/constraint/bn254"
 	"io"
 	"math"
 	"os"
 	"runtime"
+
+	"github.com/bnb-chain/zkbnb-setup/phase1"
+	"github.com/consensys/gnark-crypto/ecc/bn254"
+	cs_bn254 "github.com/consensys/gnark/constraint/bn254"
 )
 
 func InitializeFromPartedR1CS(phase1Path, session, phase2Path string, nbCons, nbR1C, batchSize int) error {

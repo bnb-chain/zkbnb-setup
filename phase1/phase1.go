@@ -14,6 +14,10 @@ import (
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 )
 
+func Transform(inputPath, outputPath string, inPower, outPower byte) error {
+	return nil
+}
+
 func Initialize(power byte, outputPath string) error {
 	_, _, g1, g2 := bn254.Generators()
 	// output outputFile

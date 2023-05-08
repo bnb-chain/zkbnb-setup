@@ -9,6 +9,29 @@ import (
 	"github.com/bnb-chain/zkbnb-setup/phase2"
 	"github.com/urfave/cli/v2"
 )
+func p1t(cCtx *cli.Context) error {
+	// sanity check
+	if cCtx.Args().Len() != 4 {
+		return errors.New("please provide the correct arguments")
+	}
+	inputPath := cCtx.Args().Get(0)
+	outputPath := cCtx.Args().Get(1)
+	inPowStr := cCtx.Args().Get(2)
+	inPower, err := strconv.Atoi(inPowStr)
+	if err != nil {
+		return err
+	}
+	outPowStr := cCtx.Args().Get(3)
+	outPower, err := strconv.Atoi(outPowStr)
+	if err != nil {
+		return err
+	}
+	if inPower < outPower {
+		return errors.New("cannot transform to a higher power")
+	}
+	err = phase1.Transform(inputPath, outputPath, byte(inPower), byte(outPower))
+	return err
+}
 
 func p1n(cCtx *cli.Context) error {
 	// sanity check

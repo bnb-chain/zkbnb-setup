@@ -1,11 +1,14 @@
 package phase1
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"math/big"
+	"os"
 
 	"github.com/bnb-chain/zkbnb-setup/common"
 	"github.com/consensys/gnark-crypto/ecc"
@@ -267,5 +270,51 @@ func verifyContribution(current, prev Contribution) error {
 		return errors.New("couldn't verify hash of contribution")
 	}
 
+	return nil
+}
+
+func transformG1(inputFile, outputFile *os.File, position int64, size int) error {
+	var g1 bn254.G1Affine
+	if _, err := inputFile.Seek(position, io.SeekStart); err != nil {
+		return err
+	}
+	reader := bufio.NewReader(inputFile)
+	writer := bufio.NewWriter(outputFile)
+	defer writer.Flush()
+
+	dec := bn254.NewDecoder(reader)
+	enc := bn254.NewEncoder(writer)
+
+	for i := 0; i < size; i++ {
+		if err := dec.Decode(&g1); err != nil {
+			return err
+		}
+		if err := enc.Encode(&g1); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func transformG2(inputFile, outputFile *os.File, position int64, size int) error {
+	var g2 bn254.G2Affine
+	if _, err := inputFile.Seek(position, io.SeekStart); err != nil {
+		return err
+	}
+	reader := bufio.NewReader(inputFile)
+	writer := bufio.NewWriter(outputFile)
+	defer writer.Flush()
+
+	dec := bn254.NewDecoder(reader)
+	enc := bn254.NewEncoder(writer)
+
+	for i := 0; i < size; i++ {
+		if err := dec.Decode(&g2); err != nil {
+			return err
+		}
+		if err := enc.Encode(&g2); err != nil {
+			return err
+		}
+	}
 	return nil
 }

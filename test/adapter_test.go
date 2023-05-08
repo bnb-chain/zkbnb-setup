@@ -7,5 +7,8 @@ import (
 )
 
 func TestTransform(t *testing.T) {
-	phase1.Transform("challenge", "transformed", 2, 2)
+	if err := phase1.Transform("challenge", "transformed", 12, 2); err != nil {
+		t.Error(err)
+	}
+	phase1.Initialize(2, "compare")
 }

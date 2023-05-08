@@ -15,6 +15,57 @@ import (
 )
 
 func Transform(inputPath, outputPath string, inPower, outPower byte) error {
+	// Input file is in uncompressed representation
+	inputFile, err := os.Open(inputPath)
+	if err != nil {
+		return err
+	}
+	defer inputFile.Close()
+
+	// Output file is in compressed representation
+	outputFile, err := os.Create(outputPath)
+	if err != nil {
+		return err
+	}
+	defer outputFile.Close()
+
+	// Write header
+	header :=Header{Power: outPower, Contributions: 0}
+	if err := header.writeTo(outputFile); err != nil {
+		return err
+	}
+
+	dec := bn254.NewDecoder(inputFile)
+	enc := bn254.NewEncoder(outputFile)
+
+	// Transform TauG1
+	fmt.Println("Transforming TauG1")
+	_, _, g1, _ := bn254.Generators()
+	var gg1 bn254.G1Affine
+
+	if err:= dec.Decode(&gg1); err!=nil {
+		return err
+	}
+
+	fmt.Println(gg1.Equal(&g1))
+
+	if err:= enc.Encode(&g1); err!=nil {
+		return err
+	}
+
+
+	// // Transform AlphaG1
+	// fmt.Println("Transforming AlphaG1")
+
+	// // Transform BetaG1
+	// fmt.Println("Transforming BetaG1")
+
+	// // Transform TauG2
+	// fmt.Println("Transforming TauG2")
+
+	// // Transform BetaG2
+	// fmt.Println("Transforming BetaG2")
+
 	return nil
 }
 

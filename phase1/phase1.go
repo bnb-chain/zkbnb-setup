@@ -14,6 +14,74 @@ import (
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 )
 
+func Transform(inputPath, outputPath string, inPower, outPower byte) error {
+	// Input file is in uncompressed representation
+	const G1Size = 64
+	const G2Size = 128
+
+	// Formatted as
+	// Hash, 2^(2n)-1[TauG1], 2^n[TauG2], 2^n[AlphaG1], 2^n[BetaG1], BetaG2
+	inputFile, err := os.Open(inputPath)
+	if err != nil {
+		return err
+	}
+	defer inputFile.Close()
+
+	// Output file is in compressed representation
+	outputFile, err := os.Create(outputPath)
+	if err != nil {
+		return err
+	}
+	defer outputFile.Close()
+
+	// Write header
+	header := Header{Power: outPower, Contributions: 0}
+	if err := header.writeTo(outputFile); err != nil {
+		return err
+	}
+
+	inN := int(math.Pow(2, float64(inPower)))
+	outN := int(math.Pow(2, float64(outPower)))
+
+	var posTauG1 int64 = 64
+	var posTauG2 int64 = posTauG1 + int64(2*inN-1)*G1Size
+	var posAlphaG1 int64 = posTauG2 + int64(inN)*G2Size
+	var posBetaG1 int64 = posAlphaG1 + int64(inN)*G1Size
+	var posBetaG2 int64 = posBetaG1 + int64(inN)*G1Size
+
+	// Transform TauG1
+	fmt.Println("Transforming TauG1")
+	if err := transformG1(inputFile, outputFile, posTauG1, 2*outN-1); err != nil {
+		return err
+	}
+
+	// Transform AlphaG1
+	fmt.Println("Transforming AlphaG1")
+	if err := transformG1(inputFile, outputFile, posAlphaG1, outN); err != nil {
+		return err
+	}
+
+	// Transform BetaG1
+	fmt.Println("Transforming BetaG1")
+	if err := transformG1(inputFile, outputFile, posBetaG1, outN); err != nil {
+		return err
+	}
+
+	// Transform TauG2
+	fmt.Println("Transforming TauG2")
+	if err := transformG2(inputFile, outputFile, posTauG2, outN); err != nil {
+		return err
+	}
+
+	// Transform BetaG2
+	fmt.Println("Transforming BetaG2")
+	if err := transformG2(inputFile, outputFile, posBetaG2, 1); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func Initialize(power byte, outputPath string) error {
 	_, _, g1, g2 := bn254.Generators()
 	// output outputFile
@@ -108,9 +176,8 @@ func Contribute(inputPath, outputPath string) error {
 	}
 
 	// Use buffered IO to write parameters efficiently
-	buffSize := int(math.Pow(2, 20))
-	reader := bufio.NewReaderSize(inputFile, buffSize)
-	writer := bufio.NewWriterSize(outputFile, buffSize)
+	reader := bufio.NewReader(inputFile)
+	writer := bufio.NewWriter(outputFile)
 	defer writer.Flush()
 
 	dec := bn254.NewDecoder(reader)
@@ -205,7 +272,7 @@ func Contribute(inputPath, outputPath string) error {
 	return nil
 }
 
-func Verify(inputPath string) error {
+func Verify(inputPath, transformedPath string) error {
 	// Input file
 	inputFile, err := os.Open(inputPath)
 	if err != nil {
@@ -258,7 +325,10 @@ func Verify(inputPath string) error {
 
 	// Verify contributions
 	var current Contribution
-	prev := defaultContribution()
+	prev, err := defaultContribution(transformedPath)
+	if err!=nil {
+		return err
+	}
 	for i := 0; i < int(header.Contributions); i++ {
 		current.ReadFrom(reader)
 		fmt.Printf("Verifying contribution %d with Hash := %s\n", i+1, hex.EncodeToString(current.Hash))

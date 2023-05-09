@@ -76,7 +76,7 @@ func TestSetup(t *testing.T) {
 	}
 
 	// Verify Phase 1 contributions
-	if err := phase1.Verify("4.ph1"); err != nil {
+	if err := phase1.Verify("4.ph1", ""); err != nil {
 		t.Error(err)
 	}
 

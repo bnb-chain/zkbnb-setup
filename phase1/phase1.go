@@ -272,7 +272,7 @@ func Contribute(inputPath, outputPath string) error {
 	return nil
 }
 
-func Verify(inputPath string) error {
+func Verify(inputPath, transformedPath string) error {
 	// Input file
 	inputFile, err := os.Open(inputPath)
 	if err != nil {
@@ -325,7 +325,10 @@ func Verify(inputPath string) error {
 
 	// Verify contributions
 	var current Contribution
-	prev := defaultContribution()
+	prev, err := defaultContribution(transformedPath)
+	if err!=nil {
+		return err
+	}
 	for i := 0; i < int(header.Contributions); i++ {
 		current.ReadFrom(reader)
 		fmt.Printf("Verifying contribution %d with Hash := %s\n", i+1, hex.EncodeToString(current.Hash))

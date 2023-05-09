@@ -41,6 +41,13 @@ func main() {
 				Description: "transforms output of PPoT ceremony to be usable by zkBnB-setup",
 				Action:      p1t,
 			},
+			/* ------------------ Phase 1 Verify from transformed file ------------------ */
+			{
+				Name:        "p1vt",
+				Usage:       "p1vt <inputPath> <transformedPath",
+				Description: "verify phase 1 contributions for Groth16 based on transformed PPoT ceremony file",
+				Action:      p1vt,
+			},
 			/* --------------------------- Phase 2 Initialize --------------------------- */
 			{
 				Name:        "p2n",

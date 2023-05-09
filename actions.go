@@ -68,7 +68,18 @@ func p1v(cCtx *cli.Context) error {
 		return errors.New("please provide the correct arguments")
 	}
 	inputPath := cCtx.Args().Get(0)
-	err := phase1.Verify(inputPath)
+	err := phase1.Verify(inputPath, "")
+	return err
+}
+
+func p1vt(cCtx *cli.Context) error {
+	// sanity check
+	if cCtx.Args().Len() != 2 {
+		return errors.New("please provide the correct arguments")
+	}
+	inputPath := cCtx.Args().Get(0)
+	transformedPath :=cCtx.Args().Get(1)
+	err := phase1.Verify(inputPath, transformedPath)
 	return err
 }
 

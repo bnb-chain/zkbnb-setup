@@ -3,6 +3,8 @@ package phase1
 import (
 	"crypto/sha256"
 	"io"
+	"math"
+	"os"
 
 	"github.com/bnb-chain/zkbnb-setup/common"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
@@ -107,17 +109,83 @@ func computeHash(c *Contribution) []byte {
 	return sha.Sum(nil)
 }
 
-func defaultContribution() Contribution {
+func defaultContribution(transformedPath string) (Contribution, error) {
 	var c Contribution
+	c.Hash = nil
 
 	// Initialize with generators
-	_, _, g1, g2 := bn254.Generators()
-	c.G1.Tau.Set(&g1)
-	c.G1.Alpha.Set(&g1)
-	c.G1.Beta.Set(&g1)
-	c.G2.Tau.Set(&g2)
-	c.G2.Beta.Set(&g2)
+	if transformedPath == "" {
+		_, _, g1, g2 := bn254.Generators()
+		c.G1.Tau.Set(&g1)
+		c.G1.Alpha.Set(&g1)
+		c.G1.Beta.Set(&g1)
+		c.G2.Tau.Set(&g2)
+		c.G2.Beta.Set(&g2)
+	} else {
+		// Read parameters from transformed file
+		const G1CompressedSize = 32
+		const G2CompressedSize = 64
+		inputFile, err := os.Open(transformedPath)
+		if err != nil {
+			return c, err
+		}
+		defer inputFile.Close()
+		dec := bn254.NewDecoder(inputFile)
 
-	c.Hash = nil
-	return c
+		// Read header
+		var header Header
+		if err := header.ReadFrom(inputFile); err != nil {
+			return c, err
+		}
+
+		N := int(math.Pow(2, float64(header.Power)))
+
+		var posTauG1 int64 = 3 + G1CompressedSize
+		var posAlphaG1 int64 = posTauG1 + int64(2*N-2)*G1CompressedSize
+		var posBetaG1 int64 = posAlphaG1 + int64(N)*G1CompressedSize
+		var posTauG2 int64 = posBetaG1 + int64(N)*G1CompressedSize + G2CompressedSize
+		var posBetaG2 int64 = posTauG2 + int64(N-1)*G2CompressedSize
+
+		// Read TauG1
+		if _, err := inputFile.Seek(posTauG1, io.SeekStart); err != nil {
+			return c, err
+		}
+		if err := dec.Decode(&c.G1.Tau); err != nil {
+			return c, err
+		}
+
+		// Read AlphaG1
+		if _, err := inputFile.Seek(posAlphaG1, io.SeekStart); err != nil {
+			return c, err
+		}
+		if err := dec.Decode(&c.G1.Alpha); err != nil {
+			return c, err
+		}
+
+		// Read BetaG1
+		if _, err := inputFile.Seek(posBetaG1, io.SeekStart); err != nil {
+			return c, err
+		}
+		if err := dec.Decode(&c.G1.Beta); err != nil {
+			return c, err
+		}
+
+		// Read TauG2
+		if _, err := inputFile.Seek(posTauG2, io.SeekStart); err != nil {
+			return c, err
+		}
+		if err := dec.Decode(&c.G2.Tau); err != nil {
+			return c, err
+		}
+
+		// Read BetaG2
+		if _, err := inputFile.Seek(posBetaG2, io.SeekStart); err != nil {
+			return c, err
+		}
+		if err := dec.Decode(&c.G2.Beta); err != nil {
+			return c, err
+		}
+	}
+
+	return c, nil
 }

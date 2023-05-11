@@ -427,7 +427,6 @@ func scale(dec *bn254.Decoder, enc *bn254.Encoder, N int, delta *big.Int) error 
 	for remaining > 0 {
 		// Read batch
 		readCount := int(math.Min(float64(remaining), float64(batchSize)))
-		fmt.Println("Iterations ", int(remaining/readCount))
 		for i := 0; i < readCount; i++ {
 			if err := dec.Decode(&buff[i]); err != nil {
 				return err
@@ -509,7 +508,6 @@ func aggregate(inputDecoder, originDecoder *bn254.Decoder, size int) (*bn254.G1A
 
 		// Read from input
 		readCount := int(math.Min(float64(remaining), float64(batchSize)))
-		fmt.Println("Iterations ", int(remaining/readCount))
 		for i := 0; i < readCount; i++ {
 			if err := inputDecoder.Decode(&buff[i]); err != nil {
 				return nil, nil, err

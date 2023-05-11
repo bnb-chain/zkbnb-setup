@@ -50,7 +50,6 @@ func scaleG1(dec *bn254.Decoder, enc *bn254.Encoder, N int, tau, multiplicand *f
 	for remaining > 0 {
 		// Read batch
 		readCount := int(math.Min(float64(remaining), float64(batchSize)))
-		fmt.Println("Iterations ", int(remaining/readCount))
 		for i := 0; i < readCount; i++ {
 			if err := dec.Decode(&buff[i]); err != nil {
 				return nil, err
@@ -114,7 +113,6 @@ func scaleG2(dec *bn254.Decoder, enc *bn254.Encoder, N int, tau *fr.Element) (*b
 	for remaining > 0 {
 		// Read batch
 		readCount := int(math.Min(float64(remaining), float64(batchSize)))
-		fmt.Println("Iterations ", int(remaining/readCount))
 		for i := 0; i < readCount; i++ {
 			if err := dec.Decode(&buff[i]); err != nil {
 				return nil, err
@@ -175,7 +173,6 @@ func linearCombinationG1(dec *bn254.Decoder, N int) (bn254.G1Affine, bn254.G1Aff
 	for remaining > 0 {
 		// Read batch
 		readCount := int(math.Min(float64(remaining), float64(batchSize)))
-		fmt.Println("Iterations ", int(remaining/readCount))
 		for i := 0; i < readCount; i++ {
 			if err := dec.Decode(&buff[i]); err != nil {
 				return L1, L2, err
@@ -208,7 +205,6 @@ func linearCombinationG2(dec *bn254.Decoder, N int) (bn254.G2Affine, bn254.G2Aff
 	for remaining > 0 {
 		// Read batch
 		readCount := int(math.Min(float64(remaining), float64(batchSize)))
-		fmt.Println("Iterations ", int(remaining/readCount))
 		for i := 0; i < readCount; i++ {
 			if err := dec.Decode(&buff[i]); err != nil {
 				return L1, L2, err

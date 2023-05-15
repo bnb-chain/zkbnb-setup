@@ -137,26 +137,21 @@ func processEvaluations(header1 *phase1.Header, header2 *Header, r1csPath string
 	}
 	defer evalFile.Close()
 
-	// Read [α]₁ , [β]₁ , [β]₂  from phase1 last contribution (Check Phase 1 file format for reference)
-	N := int(math.Pow(2, float64(header1.Power)))
-	pos := 35 + 192*int64(N) + int64((header1.Contributions-1)*640)
-	if _, err := phase1File.Seek(pos, io.SeekStart); err != nil {
-		return err
-	}
-	var c1 phase1.Contribution
-	if _, err := c1.ReadFrom(phase1File); err != nil {
+	// Read [α]₁ , [β]₁ , [β]₂  from phase1 (Check Phase 1 file format for reference)
+	alpha, beta1, beta2, err := readPhase1(phase1File, header1.Power)
+	if err != nil {
 		return err
 	}
 
 	// Write [α]₁ , [β]₁ , [β]₂
 	enc := bn254.NewEncoder(evalFile)
-	if err := enc.Encode(&c1.G1.Alpha); err != nil {
+	if err := enc.Encode(alpha); err != nil {
 		return err
 	}
-	if err := enc.Encode(&c1.G1.Beta); err != nil {
+	if err := enc.Encode(beta1); err != nil {
 		return err
 	}
-	if err := enc.Encode(&c1.G2.Beta); err != nil {
+	if err := enc.Encode(beta2); err != nil {
 		return err
 	}
 
@@ -208,7 +203,7 @@ func processEvaluations(header1 *phase1.Header, header2 *Header, r1csPath string
 	buff2 := make([]bn254.G2Affine, header2.Wires)
 
 	// Seek to Lagrange SRS TauG2 by skipping AlphaTau and BetaTau
-	pos = 2*32*int64(header2.Domain) + 2*4
+	pos := 2*32*int64(header2.Domain) + 2*4
 	if _, err := lagFile.Seek(pos, io.SeekCurrent); err != nil {
 		return err
 	}
@@ -561,4 +556,42 @@ func filterL(L []bn254.G1Affine, header2 *Header, cmtInfo *constraint.Commitment
 	}
 
 	return pkk, vkk, ckk
+}
+
+func readPhase1(phase1File *os.File, power byte) (*bn254.G1Affine, *bn254.G1Affine, *bn254.G2Affine, error) {
+	var alpha, beta1 bn254.G1Affine
+	var beta2 bn254.G2Affine
+	N := int64(math.Pow(2, float64(power)))
+	const HeaderSize = 3
+	posAlpha := HeaderSize + 32*(2*N-1)
+	posBeta1 := posAlpha + 32*N
+	posBeta2 := posBeta1 + 96*N
+
+	dec := bn254.NewDecoder(phase1File)
+	// Read AlphaG1
+	if _, err := phase1File.Seek(posAlpha, io.SeekStart); err != nil {
+		return nil, nil, nil, err
+	}
+	if err := dec.Decode(&alpha); err != nil {
+		return nil, nil, nil, err
+	}
+
+	// Read BetaG1
+	if _, err := phase1File.Seek(posBeta1, io.SeekStart); err != nil {
+		return nil, nil, nil, err
+	}
+	if err := dec.Decode(&beta1); err != nil {
+		return nil, nil, nil, err
+	}
+
+	// Read BetaG2
+	if _, err := phase1File.Seek(posBeta2, io.SeekStart); err != nil {
+		return nil, nil, nil, err
+	}
+	if err := dec.Decode(&beta2); err != nil {
+		return nil, nil, nil, err
+	}
+
+	return &alpha, &beta1, &beta2, nil
+
 }
